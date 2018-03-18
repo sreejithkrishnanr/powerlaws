@@ -30,6 +30,9 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['SamplingRate'] = metadata['Sampling']
     dataset['BaseTemperature'] = metadata['BaseTemperature']
     dataset['SurfaceArea'] = metadata['Surface']
+    dataset['TemperatureMeanDiff'] = dataset['TemperatureMean'] - dataset['BaseTemperature']
+    dataset['TemperatureMinDiff'] = dataset['TemperatureMin'] - dataset['BaseTemperature']
+    dataset['TemperatureMaxDiff'] = dataset['TemperatureMax'] - dataset['BaseTemperature']
 
     return dataset
 
@@ -216,7 +219,6 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     builders = [
         build_timestamp,
         build_holidays,
-        build_site_metadata,
         build_temperature,
         build_site_metadata,
         build_consumption_value if not novalue else lambda dataset, **kwargs: dataset
