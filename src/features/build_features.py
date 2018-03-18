@@ -87,11 +87,13 @@ def build_timestamp(dataset, **kwargs):
 
 
 def build_temperature(dataset, weather, frequency, **kwargs):
+    logger = logging.getLogger(__name__)
+
     dataset = dataset[:]
 
-    weather = weather.set_index('Timestamp')
+    ds = weather.set_index('Timestamp')
 
-    weather = weather.resample(frequency).agg({
+    weather = ds.resample(frequency).agg({
         'DistanceMean': 'mean',
         'DistanceVariance': 'mean',
         'NumStations': 'mean',
@@ -101,8 +103,10 @@ def build_temperature(dataset, weather, frequency, **kwargs):
         'TemperatureMax': 'max'
     })
 
-    if (np.sum(np.isnan(weather['TemperatureMean'])) / weather.shape[0]) < 0.25:
-        weather = weather.interpolate(method='spline', order=2)
+    if (np.sum(np.isnan(weather['TemperatureMean'])) / weather.shape[0]) < 0.4:
+        weather = weather.interpolate(method='linear')
+    else:
+        logger.warning("Cannot interpolate temperature due to low sample size")
 
     weather = weather.reset_index()
     dataset = dataset.merge(weather, left_on='Timestamp', right_on='Timestamp', how='left')
