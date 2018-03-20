@@ -33,6 +33,11 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['TemperatureMeanDiff'] = dataset['TemperatureMean'] - dataset['BaseTemperature']
     dataset['TemperatureMinDiff'] = dataset['TemperatureMin'] - dataset['BaseTemperature']
     dataset['TemperatureMaxDiff'] = dataset['TemperatureMax'] - dataset['BaseTemperature']
+    dataset['TemperatureDailyMeanDiff'] = dataset['TemperatureDailyMean'] - dataset['BaseTemperature']
+    dataset['TemperatureWeeklyMeanDiff'] = dataset['TemperatureWeeklyMean'] - dataset['BaseTemperature']
+    dataset['TemperatureMonthlyMeanDiff'] = dataset['TemperatureMonthlyMean'] - dataset['BaseTemperature']
+    dataset['TemperatureQuarterlyMeanDiff'] = dataset['TemperatureQuarterlyMean'] - dataset['BaseTemperature']
+    dataset['TemperatureYearlyMeanDiff'] = dataset['TemperatureYearlyMean'] - dataset['BaseTemperature']
 
     return dataset
 
@@ -103,13 +108,38 @@ def build_temperature(dataset, weather, frequency, **kwargs):
         'TemperatureMax': 'max'
     })
 
-    if (np.sum(np.isnan(weather['TemperatureMean'])) / weather.shape[0]) < 0.4:
-        weather = weather.interpolate(method='linear')
+    if frequency == 'D':
+        limit = 2
+        freq = 1
+    elif frequency == 'h':
+        limit = 6
+        freq = 24
+    elif frequency == '900s':
+        limit = 4*6
+        freq = 4*24
     else:
-        logger.warning("Cannot interpolate temperature due to low sample size")
+        raise Exception("Unknown frequency %s" % (frequency, ))
+
+    weather['TemperatureDailyMean'] = weather['TemperatureMean'].rolling(window=freq, min_periods=1, center=True).mean()
+    weather['TemperatureWeeklyMean'] = weather['TemperatureMean'].rolling(window=freq * 7, min_periods=1, center=True).mean()
+    weather['TemperatureMonthlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30, min_periods=1, center=True).mean()
+    weather['TemperatureQuarterlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 4, min_periods=1, center=True).mean()
+    weather['TemperatureYearlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 12, min_periods=1, center=True).mean()
+
+    weather = weather.interpolate(method='linear', limit=limit, limit_direction='both')
+
+    if frequency == 'D':
+        tolerance = '2D'
+    elif frequency == 'h':
+        tolerance = '2h'
+    elif frequency == '900s':
+        tolerance = '1800s'
+    else:
+        raise Exception("Unknown frequency %s" % (frequency, ))
 
     weather = weather.reset_index()
-    dataset = dataset.merge(weather, left_on='Timestamp', right_on='Timestamp', how='left')
+    dataset = pd.merge_asof(dataset, weather, left_on='Timestamp', right_on='Timestamp',
+                            tolerance=pd.Timedelta(tolerance), direction='nearest')
 
     dataset['HasTemperature'] = np.logical_not(np.isnan(dataset['TemperatureMin'].values))
     dataset[weather.drop(columns=['Timestamp']).keys()] = dataset[weather.drop(columns=['Timestamp']).keys()].fillna(0)
