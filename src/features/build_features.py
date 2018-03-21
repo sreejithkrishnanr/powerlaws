@@ -185,9 +185,6 @@ def build_consumption_value(dataset, frequency, **kwargs):
         logging.warning("Cannot fill values at locations %s" % (dataset.iloc[np.where(np.isnan(values))[0], :], ))
 
     dataset['Consumption'] = values
-    dataset['ConsumptionPerSurfaceArea'] = dataset['Consumption'] / dataset['SurfaceArea']
-    dataset['ConsumptionPerTemperatureDiff'] = dataset['Consumption'] / \
-                                               (dataset['TemperatureMean'] - dataset['BaseTemperature'])**2
 
     dataset['ConsumptionDailyMean'] = dataset.groupby('ForecastId')['Consumption'] \
         .rolling(per_day_stride, min_periods=ceil(per_day_stride/2)).mean().shift(1).values
@@ -198,14 +195,14 @@ def build_consumption_value(dataset, frequency, **kwargs):
     dataset['ConsumptionMonthlyMean'] = dataset.groupby('ForecastId')['Consumption'] \
         .rolling(30 * per_day_stride, min_periods=10 * per_day_stride).mean().shift(1).values
 
-    for column in ['ConsumptionDailyMean', 'ConsumptionWeeklyMean', 'ConsumptionBiWeeklyMean',
+    for column in ['Consumption', 'ConsumptionDailyMean', 'ConsumptionWeeklyMean', 'ConsumptionBiWeeklyMean',
                    'ConsumptionMonthlyMean']:
         dataset[column] = dataset.groupby('ForecastId')[column]\
             .transform(lambda x: x.fillna(x[x.first_valid_index()])).values
 
         dataset["%sPerSurfaceArea" % (column, )] = dataset[column] / dataset['SurfaceArea']
         dataset["%sPerTemperatureDiff" % (column,)] = \
-            dataset[column] / (dataset['TemperatureMean'] - dataset['BaseTemperature'])**2
+            dataset[column] / np.maximum((dataset['TemperatureMean'] - dataset['BaseTemperature'])**2, 1e-3)
 
     return dataset
 
