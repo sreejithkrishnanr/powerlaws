@@ -3,6 +3,7 @@ import os
 import sys
 import click
 import logging
+from math import ceil
 
 from dotenv import find_dotenv, load_dotenv
 import numpy as np
@@ -160,10 +161,13 @@ def build_consumption_value(dataset, frequency, **kwargs):
 
     if frequency == 'D':
         offset = 7
+        per_day_stride = 1
     elif frequency == '900s':
         offset = 7*24*4
+        per_day_stride = 24
     elif frequency == 'h':
         offset = 7*24
+        per_day_stride = 4*24
     else:
         raise Exception("Unknown frequency %s" % (frequency, ))
 
@@ -184,6 +188,24 @@ def build_consumption_value(dataset, frequency, **kwargs):
     dataset['ConsumptionPerSurfaceArea'] = dataset['Consumption'] / dataset['SurfaceArea']
     dataset['ConsumptionPerTemperatureDiff'] = dataset['Consumption'] / \
                                                (dataset['TemperatureMean'] - dataset['BaseTemperature'])**2
+
+    dataset['ConsumptionDailyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+        .rolling(per_day_stride, min_periods=ceil(per_day_stride/2)).mean().shift(1).values
+    dataset['ConsumptionWeeklyMean'] = dataset.groupby('ForecastId')['Consumption']\
+        .rolling(7 * per_day_stride, min_periods=4 * per_day_stride).mean().shift(1).values
+    dataset['ConsumptionBiWeeklyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+        .rolling(7 * 2 * per_day_stride, min_periods=7 * per_day_stride).mean().shift(1).values
+    dataset['ConsumptionMonthlyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+        .rolling(30 * per_day_stride, min_periods=10 * per_day_stride).mean().shift(1).values
+
+    for column in ['ConsumptionDailyMean', 'ConsumptionWeeklyMean', 'ConsumptionBiWeeklyMean',
+                   'ConsumptionMonthlyMean']:
+        dataset[column] = dataset.groupby('ForecastId')[column]\
+            .transform(lambda x: x.fillna(x[x.first_valid_index()])).values
+
+        dataset["%sPerSurfaceArea" % (column, )] = dataset[column] / dataset['SurfaceArea']
+        dataset["%sPerTemperatureDiff" % (column,)] = \
+            dataset[column] / (dataset['TemperatureMean'] - dataset['BaseTemperature'])**2
 
     return dataset
 
