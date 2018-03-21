@@ -207,7 +207,59 @@ def build_consumption_value(dataset, frequency, **kwargs):
     return dataset
 
 
-def build_features(builders, frequency, dataset, weather, metadata, holidays):
+def build_test_y_dep_features(dataset, frequency, train_dataset, **kwargs):
+    from src.utils.constants import get_output_window_size
+
+    output_window_size = get_output_window_size(frequency)
+
+    train_dataset = train_dataset[:]
+    train_dataset['ForecastId'] = train_dataset['ForecastId'] + dataset['ForecastId'].max()
+
+    merged_data = train_dataset.append(dataset)
+    merged_data = merged_data.sort_values('Timestamp')
+
+    if frequency == 'D':
+        freq = np.timedelta64(1, 'D')
+    elif frequency == 'h':
+        freq = np.timedelta64(1, 'h')
+    elif frequency == '900s':
+        freq = np.timedelta64(900, 's')
+    else:
+        raise Exception('Unknown frequency %s' % (frequency,))
+
+    if np.max(merged_data['Timestamp'] - merged_data['Timestamp'].shift(1)) >= 2 * freq:
+        raise Exception("There are voids of upto %s after merging train and test data for site %s" %
+                        (np.max(merged_data['Timestamp'] - merged_data['Timestamp'].shift(1)), train_dataset['SiteId'].iloc[0]))
+
+    y_dep_features = [
+        'ConsumptionDailyMean',
+        'ConsumptionWeeklyMean',
+        'ConsumptionBiWeeklyMean',
+        'ConsumptionMonthlyMean',
+        'ConsumptionDailyMeanPerSurfaceArea',
+        'ConsumptionWeeklyMeanPerSurfaceArea',
+        'ConsumptionBiWeeklyMeanPerSurfaceArea',
+        'ConsumptionMonthlyMeanPerSurfaceArea',
+        'ConsumptionDailyMeanPerTemperatureDiff',
+        'ConsumptionWeeklyMeanPerTemperatureDiff',
+        'ConsumptionBiWeeklyMeanPerTemperatureDiff',
+        'ConsumptionMonthlyMeanPerTemperatureDiff',
+    ]
+
+    merged_data[y_dep_features] = merged_data[y_dep_features].shift(output_window_size + 1)
+
+    new_test_data = merged_data.set_index('obs_id').loc[dataset['obs_id'], :].reset_index()
+
+    if new_test_data.shape[0] != dataset.shape[0]:
+        raise Exception("Missing data in new test data")
+
+    new_test_data = new_test_data.drop(
+        columns=list(set(train_dataset.keys()) - set(dataset.keys()) - set(y_dep_features)))
+
+    return new_test_data
+
+
+def build_features(builders, frequency, dataset, weather, metadata, holidays, train_dataset):
     from src.utils.data import ensure_no_na
 
     logger = logging.getLogger(__name__)
@@ -222,9 +274,11 @@ def build_features(builders, frequency, dataset, weather, metadata, holidays):
         site_weather_data = weather.loc[weather['SiteId'] == site, :]
         site_holiday_data = holidays.loc[holidays['SiteId'] == site, :]
         site_metadata = metadata.loc[metadata['SiteId'] == site, :].iloc[0]
+        site_train_data = train_dataset.loc[train_dataset['SiteId'] == site, :] if train_dataset is not None else None
 
         res = reduce(lambda acc, v: v(dataset=acc, weather=site_weather_data, holidays=site_holiday_data,
-                                     metadata=site_metadata, frequency=frequency), builders, site_data)
+                                     metadata=site_metadata, frequency=frequency, train_dataset=site_train_data),
+                     builders, site_data)
 
         try:
             ensure_no_na(res.drop(columns=src_keys))
@@ -243,11 +297,13 @@ def build_features(builders, frequency, dataset, weather, metadata, holidays):
 @click.argument('metadata_filepath', type=click.Path(exists=True))
 @click.argument('holidays_filepath', type=click.Path(exists=True))
 @click.argument('output_filepath', type=click.Path())
+@click.option('--is_test_data', type=click.BOOL, default=False)
+@click.option('--train_data_filepath', type=click.Path(), default=None)
 @click.option('--frequency', type=click.STRING, default='D')
-@click.option('--novalue', type=click.BOOL, default=False)
 @click.option('--sites', type=click.STRING, default=None)
 @click.option('--resume_site', type=click.INT, default=None)
-def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath, output_filepath, frequency, novalue, sites, resume_site):
+def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath, output_filepath, frequency,
+         is_test_data, train_data_filepath, sites, resume_site):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
@@ -265,6 +321,12 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     logger.info('Reading %s' % (holidays_filepath,))
     holidays = pd.read_csv(holidays_filepath, parse_dates=[1])
 
+    if is_test_data:
+        logger.info('Reading %s' % (train_data_filepath,))
+        train_dataset = pd.read_csv(train_data_filepath, parse_dates=[1])
+    else:
+        train_dataset = None
+
     logger.info('Generating features')
 
     pd.options.mode.chained_assignment = None
@@ -274,7 +336,7 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
         build_holidays,
         build_temperature,
         build_site_metadata,
-        build_consumption_value if not novalue else lambda dataset, **kwargs: dataset
+        build_consumption_value if not is_test_data else build_test_y_dep_features,
     ]
 
     if sites:
@@ -284,7 +346,7 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     if resume_site:
         dataset = dataset.loc[dataset['SiteId'] >= resume_site, :]
 
-    features = build_features(builders, frequency, dataset, weather, metadata, holidays)
+    features = build_features(builders, frequency, dataset, weather, metadata, holidays, train_dataset)
 
     logger.info("Saving to %s" % (output_filepath, ))
     features.to_csv(output_filepath, index=False)
