@@ -85,10 +85,10 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
             model_key = "model_%s" % (model,)
             if model_key not in scores.keys():
-                score[model_key] = []
+                scores[model_key] = []
 
             output_path = os.path.abspath(
-                os.path.join(output_dir, "model_%s_%s_%s_%f.pkl" % (model, frequency, site, round(score, 4))))
+                os.path.join(output_dir, "model_%s_%s_%s.pkl" % (model, frequency, site)))
 
             scores[model_key].append(output_path)
 
