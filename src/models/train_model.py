@@ -106,6 +106,8 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
     logger.info('Scores saved to %s' % (report_path,))
     scores.to_html(report_path)
 
+    logger.info('Mean: %s' % (scores[models].mean(), ))
+
     if not evaluate_only:
         schema_path = os.path.join(output_dir, 'schema.json')
         logger.info("Schema saved to %s" % (schema_path,))
