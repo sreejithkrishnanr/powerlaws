@@ -16,10 +16,24 @@ HPARAMS = {
             'reg_lambda': 1
         },
         'freq_h': {
-
+            'colsample_bylevel': 0.7,
+            'colsample_bytree': 0.8,
+            'gamma': 0,
+            'learning_rate': 0.1,
+            'max_depth': 4,
+            'n_estimators': 75,
+            'reg_alpha': 1.2,
+            'reg_lambda': 1.2
         },
         'freq_900s': {
-
+            'colsample_bylevel': 0.8,
+            'colsample_bytree': 0.8,
+            'gamma': 0,
+            'learning_rate': 0.11,
+            'max_depth': 5,
+            'n_estimators': 20,
+            'reg_alpha': 1.4,
+            'reg_lambda': 1.2
         }
     },
     'rnn': {
