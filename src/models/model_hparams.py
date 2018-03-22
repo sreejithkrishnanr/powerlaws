@@ -6,7 +6,14 @@ HPARAMS = {
             'learning_rate': 0.01,
         },
         'freq_D': {
-
+            'learning_rate': 0.11,
+            'max_depth': 3,
+            'n_estimators': 100,
+            'colsample_bytree': 1,
+            'colsample_bylevel': 0.9,
+            'gamma': 0,
+            'reg_alpha': 1.1,
+            'reg_lambda': 1
         },
         'freq_h': {
 

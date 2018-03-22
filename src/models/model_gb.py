@@ -9,8 +9,15 @@ def _build_regressor_from_params(params):
     max_depth = params['max_depth']
     n_estimators = params['n_estimators']
     learning_rate = params['learning_rate']
+    colsample_bytree = params['colsample_bytree']
+    colsample_bylevel = params['colsample_bylevel']
+    gamma = params['gamma']
+    reg_alpha = params['reg_alpha']
+    reg_lambda = params['reg_lambda']
 
-    return XGBRegressor(max_depth=max_depth, n_estimators=n_estimators, learning_rate=learning_rate, n_jobs=8)
+    return XGBRegressor(max_depth=max_depth, n_estimators=n_estimators, colsample_bytree=colsample_bytree,
+                        colsample_bylevel=colsample_bylevel, gamma=gamma, reg_alpha=reg_alpha, reg_lambda=reg_lambda,
+                        learning_rate=learning_rate, n_jobs=8)
 
 
 def gb_evaluate_model(x_train, y_train, x_test, y_test, site_id, frequency, verbose=False, **kwargs):
