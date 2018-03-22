@@ -75,7 +75,6 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
             if model not in scores.keys():
                 scores[model] = []
-                scores["model_%s" % (model,)] = []
 
             scores[model].append(score)
 
@@ -84,10 +83,14 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
             if evaluate_only:
                 continue
 
+            model_key = "model_%s" % (model,)
+            if model_key not in scores.keys():
+                score[model_key] = []
+
             output_path = os.path.abspath(
                 os.path.join(output_dir, "model_%s_%s_%s_%f.pkl" % (model, frequency, site, round(score, 4))))
 
-            scores["model_%s" % (model,)].append(output_path)
+            scores[model_key].append(output_path)
 
             logger.info("Building and saving model to %s" % (output_path,))
             build(x=x, y=y, site_id=site, frequency=frequency, output_path=output_path)
