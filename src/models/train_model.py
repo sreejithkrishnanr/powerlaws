@@ -3,21 +3,17 @@ import os
 import sys
 import click
 import logging
-import math
-import matplotlib.pyplot as plt
+import json
 
 from dotenv import find_dotenv, load_dotenv
+from tqdm import tqdm
 
+from tabulate import tabulate
 import pandas as pd
 import numpy as np
 
-from tqdm import tqdm
 
-from src.visualization.visualize import visualize_model_prediction
-from src.utils.data import ensure_no_na
-
-
-def generate_test_train_split(x, y, groups, obs_ids, output_window_size):
+def generate_test_train_split(x, y, groups, output_window_size):
     min_test_size = output_window_size * 2.5
     fids, counts = np.unique(groups, return_counts=True)
 
@@ -31,8 +27,7 @@ def generate_test_train_split(x, y, groups, obs_ids, output_window_size):
 
     train_mask = np.logical_not(test_mask)
 
-    return x[train_mask], y[train_mask], groups[train_mask], obs_ids[train_mask], \
-           x[test_mask], y[test_mask], groups[test_mask], obs_ids[test_mask]
+    return x[train_mask], y[train_mask], groups[train_mask], x[test_mask], y[test_mask], groups[test_mask]
 
 
 def metrics_nwrmse(y_truth, y_pred, forecast_ids):
@@ -55,80 +50,87 @@ def metrics_nwrmse(y_truth, y_pred, forecast_ids):
     return np.average(errors)
 
 
-def prepare_test_data(test_data, train_data, frequency, output_window_size):
-    sites = test_data.groupby('SiteId')['SiteId'].first().values
+def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False, models=('gb',), sites=None):
+    logger = logging.getLogger(__name__)
 
-    result = pd.DataFrame()
+    sites = train_data.groupby('SiteId')['SiteId'].first().values if sites is None else sites
+    output_window_size = get_output_window_size(frequency)
 
-    for site_id in tqdm(sites):
-        site_test_data = test_data.loc[test_data['SiteId'] == site_id, :]
+    scores = {}
+    for site in tqdm(sites):
+        site_train_data = train_data.loc[train_data['SiteId'] == site, :]
+        x, y, groups = select_features(site_train_data, frequency, novalue=False, include_site_id=False,
+                                       use_consumption_per_sa=False)
+        x_train, y_train, g_train, x_test, y_test, g_test = generate_test_train_split(x, y, groups, output_window_size)
 
-        site_train_data = train_data.loc[train_data['SiteId'] == site_id, :]
-        site_train_data['ForecastId'] = site_train_data['ForecastId'] + site_test_data['ForecastId'].max()
+        for model in models:
+            logger.info("Training model %s for site %s" % (model, site))
 
-        site_data = site_train_data.append(site_test_data)
-        site_data = site_data.sort_values('Timestamp')
+            evaluate, build, predict = MODEL_REGISTRY[model]
 
-        if frequency == 'D':
-            freq = np.timedelta64(1, 'D')
-        elif frequency == 'h':
-            freq = np.timedelta64(1, 'h')
-        elif frequency == '900s':
-            freq = np.timedelta64(900, 's')
-        else:
-            raise Exception('Unknown frequency %s' % (frequency, ))
+            y_pred = evaluate(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,
+                              site_id=site, frequency=frequency)
 
-        if np.max(site_data['Timestamp'] - site_data['Timestamp'].shift(1)) >= max(2*freq, np.timedelta64(2, 'h')):
-            raise Exception("There are voids of upto %s after merging train and test data for site %s" %
-                            (np.max(site_data['Timestamp'] - site_data['Timestamp'].shift(1)), site_id))
+            score = metrics_nwrmse(y_test, y_pred, g_test)
 
-        y_dep_features = [
-            'ConsumptionDailyMean',
-            'ConsumptionWeeklyMean',
-            'ConsumptionBiWeeklyMean',
-            'ConsumptionMonthlyMean',
-            'ConsumptionDailyMeanPerSurfaceArea',
-            'ConsumptionWeeklyMeanPerSurfaceArea',
-            'ConsumptionBiWeeklyMeanPerSurfaceArea',
-            'ConsumptionMonthlyMeanPerSurfaceArea',
-            'ConsumptionDailyMeanPerTemperatureDiff',
-            'ConsumptionWeeklyMeanPerTemperatureDiff',
-            'ConsumptionBiWeeklyMeanPerTemperatureDiff',
-            'ConsumptionMonthlyMeanPerTemperatureDiff',
-        ]
+            if model not in scores.keys():
+                scores[model] = []
+                scores["model_%s" % (model,)] = []
 
-        site_data[y_dep_features] = site_data[y_dep_features].shift(output_window_size + 1)
+            scores[model].append(score)
 
-        new_test_data = site_data.set_index('obs_id').loc[site_test_data['obs_id'], :].reset_index()
+            logger.info("Model %s scored %f for site %s" % (model, score, site))
 
-        if new_test_data.shape[0] != site_test_data.shape[0]:
-            raise Exception("Missing data in new test data")
+            if evaluate_only:
+                continue
 
-        new_test_data = new_test_data.drop(
-            columns=list(set(train_data.keys()) - set(test_data.keys()) - set(y_dep_features)))
-        ensure_no_na(new_test_data[y_dep_features])
+            output_path = os.path.abspath(
+                os.path.join(output_dir, "model_%s_%s_%s_%f.pkl" % (model, frequency, site, round(score, 4))))
 
-        result = result.append(new_test_data, ignore_index=True)
+            scores["model_%s" % (model,)].append(output_path)
 
-    return result
+            logger.info("Building and saving model to %s" % (output_path,))
+            build(x=x, y=y, site_id=site, frequency=frequency, output_path=output_path)
 
+    scores['sites'] = sites.tolist()
 
-train_data = pd.read_csv('data/processed/train_900000000000.csv', parse_dates=[1])
-test_data = pd.read_csv('data/processed/test_900000000000.csv', parse_dates=[2])
-result = prepare_test_data(test_data, train_data, '900s', 192)
+    schema = scores
+    scores = pd.DataFrame(data=scores)[['sites'] + models]
+
+    logger.info(tabulate(scores, headers='keys', tablefmt='psql'))
+
+    report_path = os.path.join(output_dir, 'scores.html')
+    logger.info('Scores saved to %s' % (report_path,))
+    scores.to_html(report_path)
+
+    if not evaluate_only:
+        schema_path = os.path.join(output_dir, 'schema.json')
+        logger.info("Schema saved to %s" % (schema_path,))
+        with open(schema_path, 'w') as f:
+            json.dump(schema, f)
 
 
 @click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('output_filepath', type=click.Path())
-def main(input_filepath, output_filepath):
+@click.argument('train_data_filepath', type=click.Path(exists=True))
+@click.argument('output_folder', type=click.Path())
+@click.option('--frequency', type=click.STRING, default='D')
+@click.option('--sites', type=click.STRING, default=None)
+@click.option('--models', type=click.STRING, default="gb")
+@click.option('--evaluate_only', type=click.BOOL, default=False)
+def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_only):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
     logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
 
-    dataset = pd.read_csv(input_filepath, parse_dates=[13])
+    logger.info("Reading %s" % (train_data_filepath,))
+    train_data = pd.read_csv(train_data_filepath, parse_dates=[1])
+    sites = np.array(list(map(int, sites.split(',')))) if sites is not None else None
+    models = models.split(',') if models is not None else None
+
+    os.makedirs(output_folder, exist_ok=True)
+
+    build_model_per_site(train_data, frequency, output_folder, evaluate_only=evaluate_only, models=models, sites=sites)
 
 
 if __name__ == '__main__':
@@ -138,6 +140,8 @@ if __name__ == '__main__':
     # not used in this stub but often useful for finding various files
     project_dir = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
     sys.path.insert(0, project_dir)
+
+    from src.models.model_common import select_features, get_output_window_size, MODEL_REGISTRY
 
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
