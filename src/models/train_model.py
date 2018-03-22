@@ -102,13 +102,13 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
     logger.info(tabulate(scores, headers='keys', tablefmt='psql'))
 
-    report_path = os.path.join(output_dir, 'scores.html')
-    logger.info('Scores saved to %s' % (report_path,))
-    scores.to_html(report_path)
-
     logger.info('Mean: %s' % (scores[models].mean(), ))
 
     if not evaluate_only:
+        report_path = os.path.join(output_dir, 'scores.html')
+        logger.info('Scores saved to %s' % (report_path,))
+        scores.to_html(report_path)
+
         schema_path = os.path.join(output_dir, 'schema.json')
         logger.info("Schema saved to %s" % (schema_path,))
         with open(schema_path, 'w') as f:
@@ -117,7 +117,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
 @click.command()
 @click.argument('train_data_filepath', type=click.Path(exists=True))
-@click.argument('output_folder', type=click.Path())
+@click.option('--output_folder', type=click.Path())
 @click.option('--frequency', type=click.STRING, default='D')
 @click.option('--sites', type=click.STRING, default=None)
 @click.option('--models', type=click.STRING, default="gb")
@@ -133,7 +133,11 @@ def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_
     sites = np.array(list(map(int, sites.split(',')))) if sites is not None else None
     models = models.split(',') if models is not None else None
 
-    os.makedirs(output_folder, exist_ok=True)
+    if not evaluate_only and not output_folder:
+        raise Exception('Output folder should be specified when not running in evaluation mode')
+
+    if not evaluate_only:
+        os.makedirs(output_folder, exist_ok=True)
 
     build_model_per_site(train_data, frequency, output_folder, evaluate_only=evaluate_only, models=models, sites=sites)
 
