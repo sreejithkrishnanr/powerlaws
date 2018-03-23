@@ -47,7 +47,7 @@ data_split_test_data_by_freq:
 features_per_day_train:
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_86400000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_86400000000000.hd5  --frequency=D
 
-features_per_day_test:
+features_per_day_test: features_per_day_train
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_86400000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_86400000000000.hd5  --frequency=D --is_test_data=True --train_data_filepath=data/processed/train_86400000000000.hd5
 
 
@@ -55,7 +55,7 @@ features_per_day_test:
 features_per_hour_train:
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_3600000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_3600000000000.hd5  --frequency=h
 
-features_per_hour_test:
+features_per_hour_test: features_per_hour_train
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_3600000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_3600000000000.hd5  --frequency=h --is_test_data=True --train_data_filepath=data/processed/train_3600000000000.hd5
 
 
@@ -63,7 +63,7 @@ features_per_hour_test:
 features_per_15m_train:
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_900000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_900000000000.hd5 --frequency=900s
 
-features_per_15m_test:
+features_per_15m_test: features_per_15m_train
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_900000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_900000000000.hd5  --frequency=900s --is_test_data=True --train_data_filepath=data/processed/train_900000000000.hd5
 
 
