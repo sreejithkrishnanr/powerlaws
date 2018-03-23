@@ -77,3 +77,6 @@ target/
 
 # exclude data from source control by default
 /data/
+
+# Compressed submission file
+/predictions/*.zip
