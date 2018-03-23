@@ -40,6 +40,22 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['TemperatureQuarterlyMeanDiff'] = dataset['TemperatureQuarterlyMean'] - dataset['BaseTemperature']
     dataset['TemperatureYearlyMeanDiff'] = dataset['TemperatureYearlyMean'] - dataset['BaseTemperature']
 
+    dataset['PotentialMeanHeating'] = np.maximum(dataset['TemperatureMean'], 0)
+    dataset['PotentialMeanCooling'] = np.abs(np.minimum(dataset['TemperatureMean'], 0))
+    dataset['PotentialMinHeating'] = np.minimum(dataset['TemperatureMinDiff'], 0)
+    dataset['PotentialMaxHeating'] = np.maximum(dataset['TemperatureMaxDiff'], 0)
+    dataset['PotentialMinCooling'] = np.abs(np.minimum(dataset['TemperatureMinDiff'], 0))
+    dataset['PotentialMaxCooling'] = np.abs(np.minimum(dataset['TemperatureMaxDiff'], 0))
+    dataset['PotentialDailyMeanHeating'] = np.maximum(dataset['TemperatureDailyMeanDiff'], 0)
+    dataset['PotentialDailyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureDailyMeanDiff'], 0))
+    dataset['PotentialWeeklyMeanHeating'] = np.maximum(dataset['TemperatureWeeklyMeanDiff'], 0)
+    dataset['PotentialWeeklyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureWeeklyMeanDiff'], 0))
+    dataset['PotentialMonthlyMeanHeating'] = np.maximum(dataset['TemperatureMonthlyMeanDiff'], 0)
+    dataset['PotentialMonthlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureMonthlyMeanDiff'], 0))
+    dataset['PotentialQuarterlyMeanHeating'] = np.maximum(dataset['TemperatureQuarterlyMeanDiff'], 0)
+    dataset['PotentialQuarterlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureQuarterlyMeanDiff'], 0))
+    dataset['PotentialYearlyMeanHeating'] = np.maximum(dataset['TemperatureYearlyMeanDiff'], 0)
+    dataset['PotentialYearlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureYearlyMeanDiff'], 0))
     return dataset
 
 

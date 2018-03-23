@@ -41,6 +41,16 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
             'ConsumptionMonthlyMean',
         ]
 
+    weather_forecast_features = [
+        'PotentialMeanHeating', 'PotentialMeanCooling', 'PotentialMinHeating', 'PotentialMaxHeating',
+        'PotentialMinCooling', 'PotentialMaxCooling', 'PotentialDailyMeanHeating', 'PotentialDailyMeanCooling',
+        'PotentialWeeklyMeanHeating', 'PotentialWeeklyMeanCooling', 'PotentialMonthlyMeanHeating',
+        'PotentialMonthlyMeanCooling', 'PotentialQuarterlyMeanHeating', 'PotentialQuarterlyMeanCooling',
+        'PotentialYearlyMeanHeating', 'PotentialYearlyMeanCooling',
+        'DistanceMean', 'DistanceVariance', 'NumStations', 'HasTemperature', 'TemperatureVariance',
+        # 'TemperatureMeanDiff', 'TemperatureMinDiff', 'TemperatureMaxDiff'
+    ]
+
     features = [
         'IsLeapYear', 'IsMonthEnd', 'IsMonthStart', 'IsQuarterEnd',
         'IsQuarterStart', 'IsYearEnd', 'IsYearStart', 'DayOfMonth_cos', 'DayOfMonth_sin',
@@ -48,9 +58,7 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
         'DayOfYear_sin', 'Hour_cos', 'Hour_sin', 'Minute_cos', 'Minute_sin',
         'Month_cos', 'Month_sin', 'Quarter_cos', 'Quarter_sin',
         'WeekOfYear_cos', 'WeekOfYear_sin', 'IsSpecialHoliday', 'IsWeekend',
-        'IsHoliday', 'DistanceMean', 'DistanceVariance', 'NumStations',
-        'TemperatureVariance', 'HasTemperature', 'TemperatureMeanDiff', 'TemperatureMinDiff',
-        'TemperatureMaxDiff', y_val_column, 'ForecastId', 'SiteId'
+        'IsHoliday', y_val_column, 'ForecastId', 'SiteId'
     ] + y_dep_features
 
     if frequency == 'D':
@@ -66,11 +74,8 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
     else:
         raise Exception('Unknown frequency %s' % (frequency,))
 
-    if not has_good_weather_forecast(train_data if novalue else dataset):
-        for i in ['DistanceMean', 'DistanceVariance', 'NumStations',
-                  'TemperatureVariance', 'HasTemperature', 'TemperatureMeanDiff', 'TemperatureMinDiff',
-                  'TemperatureMaxDiff']:
-            features.remove(i)
+    if has_good_weather_forecast(train_data if novalue else dataset):
+        features += weather_forecast_features
 
     if novalue:
         features.remove(y_val_column)
