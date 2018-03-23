@@ -29,6 +29,78 @@ requirements: test_environment
 data: requirements
 	$(PYTHON_INTERPRETER) src/data/make_dataset.py
 
+
+## Make weather dataset
+data_weather:
+	$(PYTHON_INTERPRETER) src/data/make_weather.py data/raw/weather.csv data/processed/weather.hd5
+
+
+## Split dataset according to forecast frequency
+data_split_train_data_by_freq:
+	$(PYTHON_INTERPRETER) src/data/make_split_data_by_freq.py data/raw/train.csv data/raw/submission_frequency.csv data/interim/
+
+data_split_test_data_by_freq:
+	$(PYTHON_INTERPRETER) src/data/make_split_data_by_freq.py data/raw/submission_format.csv data/raw/submission_frequency.csv data/interim/ --output_file_prefix=test
+
+
+## Build features for per day forecast
+features_per_day_train:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_86400000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_86400000000000.hd5  --frequency=D
+
+features_per_day_test:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_86400000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_86400000000000.hd5  --frequency=D --is_test_data=True --train_data_filepath=data/processed/train_86400000000000.hd5
+
+
+## Build features for per hour forecast
+features_per_hour_train:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_3600000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_3600000000000.hd5  --frequency=h
+
+features_per_hour_test:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_3600000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_3600000000000.hd5  --frequency=h --is_test_data=True --train_data_filepath=data/processed/train_3600000000000.hd5
+
+
+## Build features for per 15m forecast
+features_per_15m_train:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/train_900000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/train_900000000000.hd5 --frequency=900s
+
+features_per_15m_test:
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_900000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_900000000000.hd5  --frequency=900s --is_test_data=True --train_data_filepath=data/processed/train_900000000000.hd5
+
+
+## Build models
+define make_build_args
+	$(PYTHON_INTERPRETER) src/models/train_model.py $(1) --output_folder=$(2) --frequency=$(3) $(if $(4),--evaluate_only=$(4),) $(if $(5),--sites=$(5),) $(if $(6),--models=$(6),)
+endef
+
+## Build model for per day forecast
+model_build_per_day:
+	$(call make_build_args,data/processed/train_86400000000000.hd5,models/freq1D,D,$(evaluate_only),$(sites),$(models))
+
+## Build model for per hour forecast
+model_build_per_hour:
+	$(call make_build_args,data/processed/train_3600000000000.hd5,models/freq1h,h,$(evaluate_only),$(sites),$(models))
+
+## Build model for per 15m forecast
+model_build_per_15m:
+	$(call make_build_args,data/processed/train_900000000000.hd5,models/freq900s,900s,$(evaluate_only),$(sites),$(models))
+
+
+## Predict for per day forecast
+model_predict_per_day:
+	$(PYTHON_INTERPRETER) src/models/predict_model.py data/processed/test_86400000000000.hd5 data/processed/train_86400000000000.hd5 predictions/test_86400000000000.hd5 --frequency=D --schema_filepath=models/freq1D/schema.json
+
+## Predict for per hour forecast
+model_predict_per_hour:
+	$(PYTHON_INTERPRETER) src/models/predict_model.py data/processed/test_3600000000000.hd5 data/processed/train_3600000000000.hd5 predictions/test_3600000000000.hd5 --frequency=h --schema_filepath=models/freq1h/schema.json
+
+## Predict for per 15m forecast
+model_predict_per_15m:
+	$(PYTHON_INTERPRETER) src/models/predict_model.py data/processed/test_900000000000.hd5 data/processed/train_900000000000.hd5 predictions/test_900000000000.hd5 --frequency=900s --schema_filepath=models/freq900s/schema.json
+
+## Combine predictions
+submission:
+	$(PYTHON_INTERPRETER) src/data/make_submission.py data/raw/submission_format.csv predictions/test_86400000000000.hd5 predictions/test_3600000000000.hd5 predictions/test_900000000000.hd5 predictions/submission.csv
+
 ## Delete all compiled Python files
 clean:
 	find . -type f -name "*.py[co]" -delete
