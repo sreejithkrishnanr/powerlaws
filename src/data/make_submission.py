@@ -34,12 +34,14 @@ def main(submission_format_filepath, input_freq1d_filepath, input_freq1h_filepat
     logger.info('Reading %s' % (input_freq900s_filepath,))
     freq900s = pd.read_hdf(input_freq900s_filepath, "data")
 
+    logger.info('Merging predictions')
     predictions = freq1D.append(freq1h).append(freq900s).set_index('obs_id')['Value'].loc[submission_format['obs_id']]
 
     assert predictions.shape[0] == submission_format.shape[0]
 
     submission_format['Value'] = predictions.values
 
+    logger.info('Saving to %s' % (output_filepath,))
     submission_format.to_csv(output_filepath, index=False)
 
 
