@@ -42,7 +42,7 @@ def main(input_filepath, output_filepath):
     ensure_no_na(dataset)
 
     logger.info("Saving to %s" % (output_filepath,))
-    dataset.to_csv(output_filepath, index=False)
+    dataset.to_hdf(output_filepath, "data", index=False)
 
 
 if __name__ == '__main__':

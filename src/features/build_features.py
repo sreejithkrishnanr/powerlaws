@@ -310,10 +310,10 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     logger = logging.getLogger(__name__)
 
     logger.info('Reading %s' % (input_filepath, ))
-    dataset = pd.read_csv(input_filepath, parse_dates=[2])
+    dataset = pd.read_hdf(input_filepath, "data", parse_dates=[2])
 
     logger.info('Reading %s' % (weather_filepath,))
-    weather = pd.read_csv(weather_filepath, parse_dates=[1])
+    weather = pd.read_hdf(weather_filepath, "data", parse_dates=[1])
 
     logger.info('Reading %s' % (metadata_filepath,))
     metadata = pd.read_csv(metadata_filepath)
@@ -323,7 +323,7 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
 
     if is_test_data:
         logger.info('Reading %s' % (train_data_filepath,))
-        train_dataset = pd.read_csv(train_data_filepath, parse_dates=[1])
+        train_dataset = pd.read_hdf(train_data_filepath, "data", parse_dates=[1])
     else:
         train_dataset = None
 
@@ -349,7 +349,7 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     features = build_features(builders, frequency, dataset, weather, metadata, holidays, train_dataset)
 
     logger.info("Saving to %s" % (output_filepath, ))
-    features.to_csv(output_filepath, index=False)
+    features.to_hdf(output_filepath, "data", index=False)
 
 
 if __name__ == '__main__':

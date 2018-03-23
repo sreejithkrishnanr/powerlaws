@@ -129,7 +129,7 @@ def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_
     logger = logging.getLogger(__name__)
 
     logger.info("Reading %s" % (train_data_filepath,))
-    train_data = pd.read_csv(train_data_filepath, parse_dates=[1])
+    train_data = pd.read_hdf(train_data_filepath, "data", parse_dates=[1])
     sites = np.array(list(map(int, sites.split(',')))) if sites is not None else None
     models = models.split(',') if models is not None else None
 

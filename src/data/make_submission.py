@@ -26,13 +26,13 @@ def main(submission_format_filepath, input_freq1d_filepath, input_freq1h_filepat
     submission_format = pd.read_csv(submission_format_filepath)
 
     logger.info('Reading %s' % (input_freq1d_filepath,))
-    freq1D = pd.read_csv(input_freq1d_filepath)
+    freq1D = pd.read_hdf(input_freq1d_filepath, "data")
 
     logger.info('Reading %s' % (input_freq1h_filepath,))
-    freq1h = pd.read_csv(input_freq1h_filepath)
+    freq1h = pd.read_hdf(input_freq1h_filepath, "data")
 
     logger.info('Reading %s' % (input_freq900s_filepath,))
-    freq900s = pd.read_csv(input_freq900s_filepath)
+    freq900s = pd.read_hdf(input_freq900s_filepath, "data")
 
     predictions = freq1D.append(freq1h).append(freq900s).set_index('obs_id')['Value'].loc[submission_format['obs_id']]
 

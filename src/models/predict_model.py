@@ -90,10 +90,10 @@ def main(test_data_filepath, train_data_filepath, output_filepath, frequency, sc
         raise Exception('No schema provided')
 
     logger.info("Reading %s" % (test_data_filepath, ))
-    test_data = pd.read_csv(test_data_filepath, parse_dates=[74])
+    test_data = pd.read_hdf(test_data_filepath, "data", parse_dates=[74])
 
     logger.info("Reading %s" % (train_data_filepath,))
-    train_data = pd.read_csv(train_data_filepath, parse_dates=[1])
+    train_data = pd.read_hdf(train_data_filepath, "data", parse_dates=[1])
 
     with open(schema_filepath, 'r') as f:
         schema = _parse_schema(json.load(f))
@@ -102,7 +102,7 @@ def main(test_data_filepath, train_data_filepath, output_filepath, frequency, sc
     predictions = make_predictions_with_schema(test_data, train_data, frequency, schema, sites=sites)
 
     logger.info('Saving to %s' % (output_filepath, ))
-    predictions.to_csv(output_filepath, index=False)
+    predictions.to_hdf(output_filepath, "data", index=False)
 
 
 if __name__ == '__main__':

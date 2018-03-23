@@ -41,10 +41,10 @@ def main(input_filepath, freq_dataset_filepath, output_dir, output_file_prefix):
     input_file_name = os.path.splitext(os.path.basename(input_filepath))[0]
     output_file_prefix = output_file_prefix if output_file_prefix else input_file_name
     for frequency in frequencies:
-        output_path = os.path.join(output_dir, "%s_%d.csv" % (output_file_prefix, frequency))
+        output_path = os.path.join(output_dir, "%s_%d.hd5" % (output_file_prefix, frequency))
         logger.info("Saving dataset for frequency %d to %s" % (frequency, output_path))
 
-        dataset.loc[dataset['Frequency'] == frequency, :].to_csv(output_path, index=False)
+        dataset.loc[dataset['Frequency'] == frequency, :].to_hdf(output_path, "data", index=False)
 
     logger.info("Saved files to %s" % (output_dir,))
 
