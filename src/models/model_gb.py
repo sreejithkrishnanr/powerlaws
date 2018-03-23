@@ -26,7 +26,7 @@ def gb_evaluate_model(x_train, y_train, x_test, y_test, site_id, frequency, verb
 
     regressor.fit(x_train, y_train, eval_set=[(x_test, y_test)], eval_metric='rmse', verbose=verbose)
 
-    return regressor.predict(x_test)
+    return regressor.predict(x_test), None
 
 
 def gb_build_model(x, y, site_id, frequency, output_path, verbose=False, **kwargs):

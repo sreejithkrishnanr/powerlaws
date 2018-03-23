@@ -12,6 +12,8 @@ from tabulate import tabulate
 import pandas as pd
 import numpy as np
 
+from joblib import Parallel, delayed
+
 
 def generate_test_train_split(x, y, groups, output_window_size):
     min_test_size = output_window_size * 2.5
@@ -50,69 +52,92 @@ def metrics_nwrmse(y_truth, y_pred, forecast_ids):
     return np.average(errors)
 
 
-def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False, models=('gb',), sites=None):
+def _evaluate_and_score_model(site, model, evaluator, x_train, x_test, y_train, y_test, g_train, g_test, **kwargs):
+    y_pred, evaluated_arg = evaluator(
+        x_train=x_train, x_test=x_test, g_train=g_train, y_train=y_train, y_test=y_test, g_test=g_test, **kwargs)
+
+    score = metrics_nwrmse(y_test, y_pred, g_test)
+
+    return site, model, score, evaluated_arg
+
+
+def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False, models=('gb',), sites=None, n_jobs=-1):
     logger = logging.getLogger(__name__)
 
     sites = train_data.groupby('SiteId')['SiteId'].first().values if sites is None else sites
     output_window_size = get_output_window_size(frequency)
 
-    scores = {}
-    for site in tqdm(sites):
-        site_train_data = train_data.loc[train_data['SiteId'] == site, :]
-        x, y, groups = select_features(site_train_data, frequency, novalue=False, include_site_id=False,
-                                       use_consumption_per_sa=False)
+    workers = Parallel(n_jobs=n_jobs, backend='multiprocessing', verbose=10)
+
+    data = [select_features(train_data.loc[train_data['SiteId'] == site, :], frequency, novalue=False,
+                            include_site_id=False, use_consumption_per_sa=False) for site in sites]
+
+    evaluation_jobs = []
+    for i, site in enumerate(sites):
+        x, y, groups = data[i]
         x_train, y_train, g_train, x_test, y_test, g_test = generate_test_train_split(x, y, groups, output_window_size)
 
         for model in models:
-            logger.info("Training model %s for site %s" % (model, site))
+            evaluate, build, predict = MODEL_REGISTRY[model]
+            evaluation_jobs.append(delayed(_evaluate_and_score_model)(
+                site, model, evaluate, x_train, x_test, y_train, y_test, g_train, g_test,
+                site_id=site, frequency=frequency
+            ))
 
+    results = workers(evaluation_jobs)
+
+    schema = {}
+    evaluated_args = {}
+    for site, model, score, computed_hparams in results:
+        if model not in schema.keys():
+            schema[model] = []
+
+        schema[model].append(score)
+
+        if site not in evaluated_args.keys():
+            evaluated_args[site] = {}
+
+        evaluated_args[site][model] = computed_hparams
+
+    schema['sites'] = sites.tolist()
+    scores = pd.DataFrame(data=schema)
+
+    logger.info("Scores: \n" + tabulate(scores, headers='keys', tablefmt='psql'))
+    logger.info('Mean: %s' % (scores[models].mean(),))
+
+    if evaluate_only:
+        return
+
+    build_jobs = []
+    for i, site in enumerate(sites):
+        x, y, groups = data[i]
+        for model in models:
             evaluate, build, predict = MODEL_REGISTRY[model]
 
-            y_pred = evaluate(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,
-                              site_id=site, frequency=frequency)
-
-            score = metrics_nwrmse(y_test, y_pred, g_test)
-
-            if model not in scores.keys():
-                scores[model] = []
-
-            scores[model].append(score)
-
-            logger.info("Model %s scored %f for site %s" % (model, score, site))
-
-            if evaluate_only:
-                continue
-
             model_key = "model_%s" % (model,)
-            if model_key not in scores.keys():
-                scores[model_key] = []
+            if model_key not in schema.keys():
+                schema[model_key] = []
 
             output_path = os.path.abspath(
                 os.path.join(output_dir, "model_%s_%s_%s.pkl" % (model, frequency, site)))
 
-            scores[model_key].append(output_path)
+            schema[model_key].append(output_path)
 
-            logger.info("Building and saving model to %s" % (output_path,))
-            build(x=x, y=y, site_id=site, frequency=frequency, output_path=output_path)
+            build_jobs.append(delayed(build)(
+                x=x, y=y, groups=groups, site_id=site, frequency=frequency, output_path=output_path,
+                evaluated_args=evaluated_args[site][model]
+            ))
 
-    scores['sites'] = sites.tolist()
+    workers(build_jobs)
 
-    schema = scores
-    scores = pd.DataFrame(data=scores)[['sites'] + models]
+    report_path = os.path.join(output_dir, 'scores.html')
+    logger.info('Scores saved to %s' % (report_path,))
+    scores.to_html(report_path)
 
-    logger.info(tabulate(scores, headers='keys', tablefmt='psql'))
-
-    logger.info('Mean: %s' % (scores[models].mean(), ))
-
-    if not evaluate_only:
-        report_path = os.path.join(output_dir, 'scores.html')
-        logger.info('Scores saved to %s' % (report_path,))
-        scores.to_html(report_path)
-
-        schema_path = os.path.join(output_dir, 'schema.json')
-        logger.info("Schema saved to %s" % (schema_path,))
-        with open(schema_path, 'w') as f:
-            json.dump(schema, f)
+    schema_path = os.path.join(output_dir, 'schema.json')
+    logger.info("Schema saved to %s" % (schema_path,))
+    with open(schema_path, 'w') as f:
+        json.dump(schema, f)
 
 
 @click.command()
@@ -120,7 +145,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 @click.option('--output_folder', type=click.Path())
 @click.option('--frequency', type=click.STRING, default='D')
 @click.option('--sites', type=click.STRING, default=None)
-@click.option('--models', type=click.STRING, default="gb")
+@click.option('--models', type=click.STRING, default="gb,rnn")
 @click.option('--evaluate_only', type=click.BOOL, default=False)
 def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_only):
     """ Runs data processing scripts to turn raw data from (../raw) into
