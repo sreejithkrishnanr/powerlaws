@@ -67,6 +67,12 @@ features_per_15m_test:
 	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/test_900000000000.hd5 data/processed/weather.hd5 data/raw/metadata.csv data/raw/holidays.csv data/processed/test_900000000000.hd5  --frequency=900s --is_test_data=True --train_data_filepath=data/processed/train_900000000000.hd5
 
 
+## Build features for all forecasts
+features_train: features_per_day_train features_per_hour_train features_per_15m_train
+features_test: features_per_day_test features_per_hour_test features_per_15m_test
+features: features_train features_test
+
+
 ## Build models
 define make_build_args
 	$(PYTHON_INTERPRETER) src/models/train_model.py $(1) --output_folder=$(2) --frequency=$(3) $(if $(4),--evaluate_only=$(4),) $(if $(5),--sites=$(5),) $(if $(6),--models=$(6),)
@@ -84,6 +90,9 @@ model_build_per_hour:
 model_build_per_15m:
 	$(call make_build_args,data/processed/train_900000000000.hd5,models/freq900s,900s,$(evaluate_only),$(sites),$(models))
 
+## Build all models
+model_build: model_build_per_day model_build_per_hour model_build_per_15m
+
 
 ## Predict for per day forecast
 model_predict_per_day:
@@ -100,6 +109,12 @@ model_predict_per_15m:
 ## Combine predictions
 submission:
 	$(PYTHON_INTERPRETER) src/data/make_submission.py data/raw/submission_format.csv predictions/test_86400000000000.hd5 predictions/test_3600000000000.hd5 predictions/test_900000000000.hd5 predictions/submission.csv
+
+## Predict all models
+model_predict: model_predict_per_day model_predict_per_hour model_predict_per_15m submission
+
+## Build and predict
+model: model_build model_predict
 
 ## Delete all compiled Python files
 clean:
