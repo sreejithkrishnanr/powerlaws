@@ -101,7 +101,7 @@ def rnn_evaluate_model(x_train, y_train, g_train, x_test, y_test, g_test, site_i
     model = _model_build_lstm(ts_x_train.shape, ts_y_train.shape)
     history = model.fit(ts_x_train, ts_y_train, batch_size=50, callbacks=[
         EarlyStopping(patience=10)
-    ], validation_data=(ts_x_test, ts_y_test), epochs=400, verbose=0)
+    ], validation_data=(ts_x_test, ts_y_test), epochs=400, verbose=1 if verbose else 0)
 
     return scaler_y.inverse_transform(model.predict(ts_x_test).ravel()), {'epochs': history.epoch[-1]}
 

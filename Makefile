@@ -75,20 +75,20 @@ features: features_train features_test
 
 ## Build models
 define make_build_args
-	$(PYTHON_INTERPRETER) src/models/train_model.py $(1) --output_folder=$(2) --frequency=$(3) $(if $(4),--evaluate_only=$(4),) $(if $(5),--sites=$(5),) $(if $(6),--models=$(6),)
+	$(PYTHON_INTERPRETER) src/models/train_model.py $(1) --output_folder=$(2) --frequency=$(3) $(if $(4),--evaluate_only=$(4),) $(if $(5),--sites=$(5),) $(if $(6),--models=$(6),) $(if $(7),--verbose=$(7),)
 endef
 
 ## Build model for per day forecast
 model_build_per_day:
-	$(call make_build_args,data/processed/train_86400000000000.hd5,models/freq1D,D,$(evaluate_only),$(sites),$(models))
+	$(call make_build_args,data/processed/train_86400000000000.hd5,models/freq1D,D,$(evaluate_only),$(sites),$(models),$(verbose))
 
 ## Build model for per hour forecast
 model_build_per_hour:
-	$(call make_build_args,data/processed/train_3600000000000.hd5,models/freq1h,h,$(evaluate_only),$(sites),$(models))
+	$(call make_build_args,data/processed/train_3600000000000.hd5,models/freq1h,h,$(evaluate_only),$(sites),$(models),$(verbose))
 
 ## Build model for per 15m forecast
 model_build_per_15m:
-	$(call make_build_args,data/processed/train_900000000000.hd5,models/freq900s,900s,$(evaluate_only),$(sites),$(models))
+	$(call make_build_args,data/processed/train_900000000000.hd5,models/freq900s,900s,$(evaluate_only),$(sites),$(models),$(verbose))
 
 ## Build all models
 model_build: model_build_per_day model_build_per_hour model_build_per_15m

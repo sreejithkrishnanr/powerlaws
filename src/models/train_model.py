@@ -61,7 +61,8 @@ def _evaluate_and_score_model(site, model, evaluator, x_train, x_test, y_train, 
     return site, model, score, evaluated_arg
 
 
-def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False, models=('gb',), sites=None, n_jobs=-1):
+def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False, models=('gb',), sites=None,
+                         n_jobs=-1, verbose=False):
     logger = logging.getLogger(__name__)
 
     sites = train_data.groupby('SiteId')['SiteId'].first().values if sites is None else sites
@@ -81,7 +82,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
             evaluate, build, predict = MODEL_REGISTRY[model]
             evaluation_jobs.append(delayed(_evaluate_and_score_model)(
                 site, model, evaluate, x_train, x_test, y_train, y_test, g_train, g_test,
-                site_id=site, frequency=frequency
+                site_id=site, frequency=frequency, verbose=verbose
             ))
 
     results = workers(evaluation_jobs)
@@ -125,7 +126,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
             build_jobs.append(delayed(build)(
                 x=x, y=y, groups=groups, site_id=site, frequency=frequency, output_path=output_path,
-                evaluated_args=evaluated_args[site][model]
+                evaluated_args=evaluated_args[site][model], verbose=verbose
             ))
 
     workers(build_jobs)
@@ -147,7 +148,8 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 @click.option('--sites', type=click.STRING, default=None)
 @click.option('--models', type=click.STRING, default="gb,rnn")
 @click.option('--evaluate_only', type=click.BOOL, default=False)
-def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_only):
+@click.option('--verbose', type=click.BOOL, default=False)
+def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_only, verbose):
     """ Runs data processing scripts to turn raw data from (../raw) into
         cleaned data ready to be analyzed (saved in ../processed).
     """
@@ -164,7 +166,8 @@ def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_
     if not evaluate_only:
         os.makedirs(output_folder, exist_ok=True)
 
-    build_model_per_site(train_data, frequency, output_folder, evaluate_only=evaluate_only, models=models, sites=sites)
+    build_model_per_site(train_data, frequency, output_folder, evaluate_only=evaluate_only, models=models, sites=sites,
+                         verbose=verbose)
 
 
 if __name__ == '__main__':
