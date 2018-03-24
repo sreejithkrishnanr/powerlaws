@@ -4,10 +4,12 @@ import pandas as pd
 from src.utils.constants import get_output_window_size
 from src.models.model_gb import gb_evaluate_model, gb_build_model, gb_predict_model
 from src.models.model_rnn import rnn_evaluate_model, rnn_build_model, rnn_predict_model
+from src.models.model_recursive_gb import recursive_gb_evaluate_model, recursive_gb_build_model, recursive_gb_predict_model
 
 MODEL_REGISTRY = {
     'gb': [gb_evaluate_model, gb_build_model, gb_predict_model],
-    'rnn': [rnn_evaluate_model, rnn_build_model, rnn_predict_model]
+    'rnn': [rnn_evaluate_model, rnn_build_model, rnn_predict_model],
+    'recursive_gb': [recursive_gb_evaluate_model, recursive_gb_build_model, recursive_gb_predict_model]
 }
 
 

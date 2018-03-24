@@ -82,7 +82,9 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
             evaluate, build, predict = MODEL_REGISTRY[model]
             evaluation_jobs.append(delayed(_evaluate_and_score_model)(
                 site, model, evaluate, x_train, x_test, y_train, y_test, g_train, g_test,
-                site_id=site, frequency=frequency, verbose=verbose
+                site_id=site, frequency=frequency, verbose=verbose,
+                train_dataset=train_data.set_index('obs_id').loc[x_train.index, :],
+                test_dataset=train_data.set_index('obs_id').loc[x_test.index, :]
             ))
 
     results = workers(evaluation_jobs)

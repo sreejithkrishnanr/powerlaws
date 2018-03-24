@@ -36,6 +36,46 @@ HPARAMS = {
             'reg_lambda': 1.2
         }
     },
+    'recursive_gb': {
+        'DEFAULT': {
+            'max_depth': 3,
+            'n_estimators': 100,
+            'learning_rate': 0.01,
+        },
+        'freq_D': {
+            'learning_rate': 0.11,
+            'max_depth': 3,
+            'n_estimators': 100,
+            'colsample_bytree': 1,
+            'colsample_bylevel': 0.9,
+            'gamma': 0,
+            'reg_alpha': 1.1,
+            'reg_lambda': 1,
+            'input_window_size': 14
+        },
+        'freq_h': {
+            'colsample_bylevel': 0.7,
+            'colsample_bytree': 0.8,
+            'gamma': 0,
+            'learning_rate': 0.1,
+            'max_depth': 4,
+            'n_estimators': 75,
+            'reg_alpha': 1.2,
+            'reg_lambda': 1.2,
+            'input_window_size': 24*2
+        },
+        'freq_900s': {
+            'colsample_bylevel': 0.8,
+            'colsample_bytree': 0.8,
+            'gamma': 0,
+            'learning_rate': 0.11,
+            'max_depth': 5,
+            'n_estimators': 20,
+            'reg_alpha': 1.4,
+            'reg_lambda': 1.2,
+            'input_window_size': 24*4*2
+        }
+    },
     'rnn': {
 
     }

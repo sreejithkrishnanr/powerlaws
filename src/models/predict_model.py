@@ -64,7 +64,8 @@ def make_predictions_with_schema(test_data, train_data, frequency, schema, selec
         x, y, groups = select_features(site_test_data, frequency, novalue=True, train_data=site_train_data,
                                        include_site_id=False, use_consumption_per_sa=False)
 
-        y_pred = predict(x_test=x, g_test=groups, model_path=path, frequency=frequency)
+        y_pred = predict(x_test=x, g_test=groups, model_path=path, frequency=frequency, site_id=site,
+                         train_data=site_train_data, test_data=site_test_data)
         predictions = site_test_data[['obs_id', 'SiteId', 'Timestamp', 'ForecastId']]
         predictions.insert(4, 'Value', y_pred)
 
