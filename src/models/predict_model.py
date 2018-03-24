@@ -37,7 +37,7 @@ def _select_model_with_best_score(schema, site):
     best_model = None
 
     for model in models:
-        if best_model is None or best_model['score'] < model['score']:
+        if best_model is None or model['score'] < best_model['score']:
             best_model = model
 
     return best_model
