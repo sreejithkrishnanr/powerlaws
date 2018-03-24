@@ -169,6 +169,7 @@ def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_
     if not evaluate_only:
         os.makedirs(output_folder, exist_ok=True)
 
+    logger.info("Building models")
     build_model_per_site(train_data, frequency, output_folder, evaluate_only=evaluate_only, models=models, sites=sites,
                          verbose=verbose)
 
