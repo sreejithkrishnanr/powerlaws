@@ -95,9 +95,14 @@ def _make_forecast_predictions(model, x_test, ts_test, x_train, y_train, ts_trai
 
     train_window = (ts_train >= train_window_start_time) & (ts_train < train_window_end_time)
 
-    assert np.sum(train_window) == input_window_size
-
     x_t_minus_1 = np.hstack((x_train.loc[train_window, :].values, y_train.loc[train_window].values.reshape((-1, 1))))
+
+    if x_t_minus_1.shape[0] < input_window_size:
+        x_t_minus_1 = np.vstack((np.zeros((input_window_size-x_t_minus_1.shape[0], x_t_minus_1.shape[1])), x_t_minus_1))
+    elif x_t_minus_1.shape[0] > input_window_size:
+        x_t_minus_1 = x_t_minus_1[:-input_window_size]
+
+    assert x_t_minus_1.shape[0] == input_window_size
 
     y_pred = []
     for i in range(x_test.shape[0]):
