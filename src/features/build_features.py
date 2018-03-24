@@ -40,8 +40,8 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['TemperatureQuarterlyMeanDiff'] = dataset['TemperatureQuarterlyMean'] - dataset['BaseTemperature']
     dataset['TemperatureYearlyMeanDiff'] = dataset['TemperatureYearlyMean'] - dataset['BaseTemperature']
 
-    dataset['PotentialMeanHeating'] = np.maximum(dataset['TemperatureMean'], 0)
-    dataset['PotentialMeanCooling'] = np.abs(np.minimum(dataset['TemperatureMean'], 0))
+    dataset['PotentialMeanHeating'] = np.maximum(dataset['TemperatureMeanDiff'], 0)
+    dataset['PotentialMeanCooling'] = np.abs(np.minimum(dataset['TemperatureMeanDiff'], 0))
     dataset['PotentialMinHeating'] = np.minimum(dataset['TemperatureMinDiff'], 0)
     dataset['PotentialMaxHeating'] = np.maximum(dataset['TemperatureMaxDiff'], 0)
     dataset['PotentialMinCooling'] = np.abs(np.minimum(dataset['TemperatureMinDiff'], 0))
