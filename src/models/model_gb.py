@@ -1,4 +1,5 @@
 import pickle
+import numpy as np
 
 from xgboost import XGBRegressor
 
@@ -26,7 +27,7 @@ def gb_evaluate_model(x_train, y_train, x_test, y_test, site_id, frequency, verb
 
     regressor.fit(x_train, y_train, eval_set=[(x_test, y_test)], eval_metric='rmse', verbose=verbose)
 
-    return regressor.predict(x_test), None
+    return np.maximum(regressor.predict(x_test), 0), None
 
 
 def gb_build_model(x, y, site_id, frequency, output_path, verbose=False, **kwargs):
@@ -41,4 +42,4 @@ def gb_predict_model(x_test, model_path, **kwargs):
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
 
-    return model.predict(x_test)
+    return np.maximum(model.predict(x_test), 0)
