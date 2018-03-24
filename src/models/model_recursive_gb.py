@@ -78,7 +78,7 @@ def _generate_train_ts(x, y, forecast_ids, input_window_size, output_window_size
     return agg_x, agg_y.ravel()
 
 
-def _make_forecast_predictions(model, x_test, train_dataset, forecast_test_dataset, input_window_size, frequency):
+def _make_forecast_predictions(model, x_test, ts_test, x_train, y_train, ts_train, input_window_size, frequency):
     if frequency == 'D':
         td = np.timedelta64(1, 'D')
     elif frequency == 'h':
@@ -88,17 +88,16 @@ def _make_forecast_predictions(model, x_test, train_dataset, forecast_test_datas
     else:
         raise Exception("Unsupported frequency %s" % (frequency, ))
 
-    start_time = forecast_test_dataset['Timestamp'].min()
+    start_time = ts_test.min()
 
     train_window_start_time = start_time - (input_window_size * td)
     train_window_end_time = start_time
 
-    train_window = train_dataset.loc[
-                   (train_dataset['Timestamp'] >= train_window_start_time) & (train_dataset['Timestamp'] < train_window_end_time), :]
+    train_window = (ts_train >= train_window_start_time) & (ts_train < train_window_end_time)
 
-    assert train_window.shape[0] == input_window_size
+    assert np.sum(train_window) == input_window_size
 
-    x_t_minus_1 = np.hstack((train_window[x_test.keys()].values, train_window['Consumption'].values.reshape((-1, 1))))
+    x_t_minus_1 = np.hstack((x_train.loc[train_window, :].values, y_train.loc[train_window].values.reshape((-1, 1))))
 
     y_pred = []
     for i in range(x_test.shape[0]):
@@ -113,23 +112,23 @@ def _make_forecast_predictions(model, x_test, train_dataset, forecast_test_datas
     return np.array(y_pred)
 
 
-def _make_predictions(model, x_test, g_test, train_dataset, test_dataset, input_window_size, frequency):
+def _make_predictions(model, x_test, g_test, ts_test, x_train, y_train, ts_train, input_window_size, frequency):
     fids = np.unique(g_test)
 
     y_pred = []
     for fid in fids:
         forecast_x_test = x_test.loc[g_test == fid, :]
-        forecast_test_dataset = test_dataset.loc[test_dataset['ForecastId'] == fid, :]
+        forecast_ts_test = ts_test.loc[g_test == fid]
         forecast_y_pred = _make_forecast_predictions(
-            model, forecast_x_test, train_dataset, forecast_test_dataset, input_window_size, frequency)
+            model, forecast_x_test, forecast_ts_test, x_train, y_train, ts_train, input_window_size, frequency)
 
         y_pred.append(forecast_y_pred)
 
     return np.concatenate(y_pred).ravel()
 
 
-def recursive_gb_evaluate_model(x_train, y_train, g_train, x_test, g_test, site_id, frequency, train_dataset,
-                      test_dataset, verbose=False, **kwargs):
+def recursive_gb_evaluate_model(x_train, y_train, g_train, ts_train, x_test, g_test, ts_test, site_id,
+                                frequency, verbose=False, **kwargs):
     hparams = get_hparams(site_id, frequency, 'recursive_gb')
     regressor = _build_regressor_from_params(hparams)
     input_window_size = hparams['input_window_size']
@@ -138,7 +137,8 @@ def recursive_gb_evaluate_model(x_train, y_train, g_train, x_test, g_test, site_
 
     regressor.fit(tsx_train, tsy_train, verbose=verbose)
 
-    return _make_predictions(regressor, x_test, g_test, train_dataset, test_dataset, input_window_size, frequency), None
+    return _make_predictions(
+        regressor, x_test, g_test, ts_test, x_train, y_train, ts_train, input_window_size, frequency), None
 
 
 def recursive_gb_build_model(x, y, groups, site_id, frequency, output_path, verbose=False, **kwargs):
@@ -152,9 +152,11 @@ def recursive_gb_build_model(x, y, groups, site_id, frequency, output_path, verb
         pickle.dump(regressor, f, protocol=4)
 
 
-def recursive_gb_predict_model(model_path, x_test, g_test, site_id, train_dataset, test_dataset, frequency, **kwargs):
+def recursive_gb_predict_model(model_path, x_test, g_test, ts_test, site_id, x_train,
+                               y_train, ts_train, frequency, **kwargs):
     h_params = get_hparams(site_id, frequency, 'recursive_gb')
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
 
-    return _make_predictions(model, x_test, g_test, train_dataset, test_dataset, h_params['input_window_size'], frequency)
+    return _make_predictions(
+        model, x_test, g_test, ts_test, x_train, y_train, ts_train, h_params['input_window_size'], frequency)

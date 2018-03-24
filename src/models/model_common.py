@@ -60,7 +60,7 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
         'DayOfYear_sin', 'Hour_cos', 'Hour_sin', 'Minute_cos', 'Minute_sin',
         'Month_cos', 'Month_sin', 'Quarter_cos', 'Quarter_sin',
         'WeekOfYear_cos', 'WeekOfYear_sin', 'IsSpecialHoliday', 'IsWeekend',
-        'IsHoliday', y_val_column, 'ForecastId', 'SiteId'
+        'IsHoliday', y_val_column, 'ForecastId', 'SiteId', 'Timestamp'
     ] + y_dep_features
 
     if frequency == 'D':
@@ -98,8 +98,9 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
     if include_site_id:
         feature_set = pd.get_dummies(feature_set, columns=['SiteId'])
 
-    x = feature_set.drop(columns=['ForecastId'] + ([y_val_column] if not novalue else []))
+    x = feature_set.drop(columns=['ForecastId', 'Timestamp'] + ([y_val_column] if not novalue else []))
     y = feature_set[y_val_column] if not novalue else None
     groups = feature_set['ForecastId']
+    ts = feature_set['Timestamp']
 
-    return x, y, groups
+    return x, y, groups, ts

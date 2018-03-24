@@ -15,7 +15,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 
-def generate_test_train_split(x, y, groups, output_window_size):
+def generate_test_train_split(x, y, groups, ts, output_window_size):
     min_test_size = output_window_size * 2.5
     fids, counts = np.unique(groups, return_counts=True)
 
@@ -29,7 +29,8 @@ def generate_test_train_split(x, y, groups, output_window_size):
 
     train_mask = np.logical_not(test_mask)
 
-    return x[train_mask], y[train_mask], groups[train_mask], x[test_mask], y[test_mask], groups[test_mask]
+    return x[train_mask], y[train_mask], groups[train_mask], ts[train_mask], \
+           x[test_mask], y[test_mask], groups[test_mask], ts[test_mask]
 
 
 def metrics_nwrmse(y_truth, y_pred, forecast_ids):
@@ -75,16 +76,16 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
     evaluation_jobs = []
     for i, site in enumerate(sites):
-        x, y, groups = data[i]
-        x_train, y_train, g_train, x_test, y_test, g_test = generate_test_train_split(x, y, groups, output_window_size)
+        x, y, groups, ts = data[i]
+        x_train, y_train, g_train, ts_train, x_test, y_test, g_test, ts_test = \
+            generate_test_train_split(x, y, groups, ts, output_window_size)
 
         for model in models:
             evaluate, build, predict = MODEL_REGISTRY[model]
             evaluation_jobs.append(delayed(_evaluate_and_score_model)(
                 site, model, evaluate, x_train, x_test, y_train, y_test, g_train, g_test,
                 site_id=site, frequency=frequency, verbose=verbose,
-                train_dataset=train_data.set_index('obs_id').loc[x_train.index, :],
-                test_dataset=train_data.set_index('obs_id').loc[x_test.index, :]
+                ts_train=ts_train, ts_test=ts_test
             ))
 
     results = workers(evaluation_jobs)
@@ -113,7 +114,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 
     build_jobs = []
     for i, site in enumerate(sites):
-        x, y, groups = data[i]
+        x, y, groups, ts = data[i]
         for model in models:
             evaluate, build, predict = MODEL_REGISTRY[model]
 
@@ -127,7 +128,7 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
             schema[model_key].append(output_path)
 
             build_jobs.append(delayed(build)(
-                x=x, y=y, groups=groups, site_id=site, frequency=frequency, output_path=output_path,
+                x=x, y=y, groups=groups, ts=ts, site_id=site, frequency=frequency, output_path=output_path,
                 evaluated_args=evaluated_args[site][model], verbose=verbose
             ))
 

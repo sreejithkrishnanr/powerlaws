@@ -61,11 +61,15 @@ def make_predictions_with_schema(test_data, train_data, frequency, schema, selec
 
         evaluate, build, predict = MODEL_REGISTRY[name]
 
-        x, y, groups = select_features(site_test_data, frequency, novalue=True, train_data=site_train_data,
-                                       include_site_id=False, use_consumption_per_sa=False)
+        x_test, y_test, g_test, ts_test = select_features(
+            site_test_data, frequency, novalue=True, train_data=site_train_data,
+            include_site_id=False, use_consumption_per_sa=False)
 
-        y_pred = predict(x_test=x, g_test=groups, model_path=path, frequency=frequency, site_id=site,
-                         train_data=site_train_data, test_data=site_test_data)
+        x_train, y_train, g_train, ts_train = select_features(
+            site_train_data, frequency, novalue=False, include_site_id=False, use_consumption_per_sa=False)
+
+        y_pred = predict(x_test=x_test, g_test=g_test, ts_test=ts_test, model_path=path, frequency=frequency,
+                         site_id=site, x_train=x_train, y_train=y_train, ts_train=ts_train)
         predictions = site_test_data[['obs_id', 'SiteId', 'Timestamp', 'ForecastId']]
         predictions.insert(4, 'Value', y_pred)
 
