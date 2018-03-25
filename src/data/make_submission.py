@@ -37,6 +37,9 @@ def main(submission_format_filepath, input_freq1d_filepath, input_freq1h_filepat
     logger.info('Merging predictions')
     predictions = freq1D.append(freq1h).append(freq900s).set_index('obs_id')['Value'].loc[submission_format['obs_id']]
 
+    if np.sum(np.isnan(predictions)) > 0:
+        raise Exception("Predictions contains nan values")
+
     assert predictions.shape[0] == submission_format.shape[0]
 
     submission_format['Value'] = predictions.values

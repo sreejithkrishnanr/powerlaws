@@ -70,8 +70,17 @@ def make_predictions_with_schema(test_data, train_data, frequency, schema, selec
 
         y_pred = predict(x_test=x_test, g_test=g_test, ts_test=ts_test, model_path=path, frequency=frequency,
                          site_id=site, x_train=x_train, y_train=y_train, ts_train=ts_train)
+
+        if np.sum(np.isnan(y_pred)) > 0:
+            raise Exception("Prediction contains Nans for site %s using model %s" % (site, model))
+
+        assert y_pred.shape[0] == site_test_data.shape[0]
+
         predictions = site_test_data[['obs_id', 'SiteId', 'Timestamp', 'ForecastId']]
         predictions.insert(4, 'Value', y_pred)
+
+        if predictions.isnull().values.any():
+            raise Exception("Prediction contains null values for site %s using model %s" % (site, model))
 
         result = result.append(predictions)
 
