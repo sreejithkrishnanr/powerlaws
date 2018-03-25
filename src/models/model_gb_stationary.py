@@ -28,7 +28,7 @@ def gb_stat_evaluate_model(x_train, y_train, x_test, y_test, site_id, frequency,
     y_train = y_train - x_train['ConsumptionWeeklyMean']
     regressor.fit(x_train, y_train, verbose=verbose)
 
-    return np.maximum(x_test['ConsumptionWeeklyMean'] + regressor.predict(x_test), 0), None
+    return np.maximum(x_test['ConsumptionWeeklyMean'].values + regressor.predict(x_test), 0), None
 
 
 def gb_stat_build_model(x, y, site_id, frequency, output_path, verbose=False, **kwargs):
@@ -44,4 +44,4 @@ def gb_stat_predict_model(x_test, model_path, **kwargs):
     with open(model_path, 'rb') as f:
         model = pickle.load(f)
 
-    return np.maximum(x_test['ConsumptionWeeklyMean'] + model.predict(x_test), 0)
+    return np.maximum(x_test['ConsumptionWeeklyMean'].values + model.predict(x_test), 0)
