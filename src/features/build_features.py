@@ -173,6 +173,11 @@ def build_consumption_value(dataset, frequency, **kwargs):
     dataset = d1
 
     values = dataset['Value']
+
+    outliers = dataset['Value'] > dataset['Value'].quantile(0.99)
+    if np.sum(outliers)/values.shape[0] < 0.1:
+        values = values.mask(outliers)
+
     null_val_indices,  = np.where(np.isnan(values))
 
     if frequency == 'D':
