@@ -1,13 +1,12 @@
-from functools import reduce
+import logging
 import os
 import sys
-import click
-import logging
-from math import ceil
+from functools import reduce
 
-from dotenv import find_dotenv, load_dotenv
+import click
 import numpy as np
 import pandas as pd
+from dotenv import find_dotenv, load_dotenv
 from tqdm import tqdm
 
 
