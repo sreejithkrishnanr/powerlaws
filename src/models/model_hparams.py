@@ -76,6 +76,41 @@ HPARAMS = {
             'input_window_size': 24*4*2
         }
     },
+    'gb_stat': {
+        'DEFAULT': {
+            'gamma': 0,
+        },
+        'freq_D': {
+            'learning_rate': 0.11,
+            'max_depth': 3,
+            'n_estimators': 100,
+            'colsample_bytree': 1,
+            'colsample_bylevel': 0.9,
+            'reg_alpha': 1.1,
+            'reg_lambda': 1,
+            'trend_column': 'ConsumptionWeeklyMean'
+        },
+        'freq_h': {
+            'colsample_bylevel': 0.7,
+            'colsample_bytree': 0.8,
+            'learning_rate': 0.1,
+            'max_depth': 4,
+            'n_estimators': 75,
+            'reg_alpha': 1.2,
+            'reg_lambda': 1.2,
+            'trend_column': 'ConsumptionDailyMean'
+        },
+        'freq_900s': {
+            'colsample_bylevel': 0.8,
+            'colsample_bytree': 0.8,
+            'learning_rate': 0.11,
+            'max_depth': 5,
+            'n_estimators': 20,
+            'reg_alpha': 1.4,
+            'reg_lambda': 1.2,
+            'trend_column': 'ConsumptionDailyMean'
+        }
+    },
     'rnn': {
 
     }
