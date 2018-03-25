@@ -30,6 +30,8 @@ def main(input_filepath, output_filepath):
 
     dataset = pd.DataFrame(data=OrderedDict([
         ('DistanceMean', groups['Distance'].mean()),
+        ('DistanceMin', groups['Distance'].min()),
+        ('DistanceMax', groups['Distance'].max()),
         ('DistanceVariance', groups['Distance'].std().fillna(0)),
         ('NumStations', groups['Distance'].count()),
         ('TemperatureMean', groups['Weighted_Temperature'].sum() / groups['Weight'].sum()),

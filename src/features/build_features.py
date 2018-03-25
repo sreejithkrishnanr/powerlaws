@@ -117,6 +117,8 @@ def build_temperature(dataset, weather, frequency, **kwargs):
 
     weather = ds.resample(frequency).agg({
         'DistanceMean': 'mean',
+        'DistanceMin': 'min',
+        'DistanceMax': 'max',
         'DistanceVariance': 'mean',
         'NumStations': 'mean',
         'TemperatureMean': 'mean',
