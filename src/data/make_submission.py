@@ -3,6 +3,8 @@ import os
 import sys
 import click
 import logging
+import zipfile
+
 from dotenv import find_dotenv, load_dotenv
 
 import pandas as pd
@@ -46,6 +48,11 @@ def main(submission_format_filepath, input_freq1d_filepath, input_freq1h_filepat
 
     logger.info('Saving to %s' % (output_filepath,))
     submission_format.to_csv(output_filepath, index=False)
+
+    compressed_submission_filepath = output_filepath + '.zip'
+    logger.info('Saving compressed %s to %s' % (output_filepath, compressed_submission_filepath))
+    with zipfile.ZipFile(compressed_submission_filepath, mode='w', compression=zipfile.ZIP_DEFLATED) as f:
+        f.write(output_filepath, 'submission.csv')
 
 
 if __name__ == '__main__':
