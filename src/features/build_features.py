@@ -354,7 +354,7 @@ def build_features(builders, frequency, dataset, weather, metadata, holidays, tr
 
     sites = dataset.groupby('SiteId')['SiteId'].first().values
 
-    result = pd.DataFrame()
+    result = []
     src_keys = dataset.keys()
 
     for site in tqdm(sites):
@@ -374,9 +374,9 @@ def build_features(builders, frequency, dataset, weather, metadata, holidays, tr
             logger.error("Columns with empty values when processing site %d" % (site, ))
             raise Exception(e)
 
-        result = result.append(res, ignore_index=True)
+        result.append(res)
 
-    return result
+    return pd.concat(result, axis=0, ignore_index=True)
 
 
 @click.command()
