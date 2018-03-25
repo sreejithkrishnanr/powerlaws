@@ -30,20 +30,18 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
     else:
         y_val_column = 'Consumption'
 
+    y_dep_features = []
+    if frequency == 'D' or frequency == 'h' or frequency == '900s':
+        y_dep_features += ['ConsumptionDailyMean', 'ConsumptionWeeklyMean']
+    if frequency == 'D' or frequency == 'h':
+        y_dep_features += ['ConsumptionBiWeeklyMean', 'ConsumptionMonthlyMean']
+    if frequency == 'h' or frequency == '900s':
+        y_dep_features += ['ConsumptionHalfDayMean', 'ConsumptionQuarterDayMean']
+    if frequency == '900s':
+        y_dep_features += ['ConsumptionHourlyMean']
+
     if use_consumption_per_sa:
-        y_dep_features = [
-            'ConsumptionDailyMeanPerSurfaceArea',
-            'ConsumptionWeeklyMeanPerSurfaceArea',
-            'ConsumptionBiWeeklyMeanPerSurfaceArea',
-            'ConsumptionMonthlyMeanPerSurfaceArea',
-        ]
-    else:
-        y_dep_features = [
-            'ConsumptionDailyMean',
-            'ConsumptionWeeklyMean',
-            'ConsumptionBiWeeklyMean',
-            'ConsumptionMonthlyMean',
-        ]
+        y_dep_features = list(map(lambda v: "%sPerSurfaceArea" % (v, ), y_dep_features))
 
     weather_forecast_features = [
         'PotentialMeanHeating', 'PotentialMeanCooling', 'PotentialMinHeating', 'PotentialMaxHeating',

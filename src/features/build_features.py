@@ -187,10 +187,10 @@ def build_consumption_value(dataset, frequency, **kwargs):
         per_day_stride = 1
     elif frequency == '900s':
         offset = 7*24*4
-        per_day_stride = 24
+        per_day_stride = 4*24
     elif frequency == 'h':
         offset = 7*24
-        per_day_stride = 4*24
+        per_day_stride = 24
     else:
         raise Exception("Unknown frequency %s" % (frequency, ))
 
@@ -209,17 +209,35 @@ def build_consumption_value(dataset, frequency, **kwargs):
 
     dataset['Consumption'] = values
 
-    dataset['ConsumptionDailyMean'] = dataset.groupby('ForecastId')['Consumption'] \
-        .rolling(per_day_stride, min_periods=ceil(per_day_stride/2)).mean().shift(1).values
-    dataset['ConsumptionWeeklyMean'] = dataset.groupby('ForecastId')['Consumption']\
-        .rolling(7 * per_day_stride, min_periods=4 * per_day_stride).mean().shift(1).values
-    dataset['ConsumptionBiWeeklyMean'] = dataset.groupby('ForecastId')['Consumption'] \
-        .rolling(7 * 2 * per_day_stride, min_periods=7 * per_day_stride).mean().shift(1).values
-    dataset['ConsumptionMonthlyMean'] = dataset.groupby('ForecastId')['Consumption'] \
-        .rolling(30 * per_day_stride, min_periods=10 * per_day_stride).mean().shift(1).values
+    consumption_agg_columns = []
+    if frequency == 'D' or frequency == 'h' or frequency == '900s':
+        dataset['ConsumptionDailyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(per_day_stride, min_periods=None).mean().shift(1).values
+        dataset['ConsumptionWeeklyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(7 * per_day_stride, min_periods=None).mean().shift(1).values
 
-    for column in ['Consumption', 'ConsumptionDailyMean', 'ConsumptionWeeklyMean', 'ConsumptionBiWeeklyMean',
-                   'ConsumptionMonthlyMean']:
+        consumption_agg_columns += ['ConsumptionDailyMean', 'ConsumptionWeeklyMean']
+    if frequency == 'D' or frequency == 'h':
+        dataset['ConsumptionBiWeeklyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(7 * 2 * per_day_stride, min_periods=None).mean().shift(1).values
+        dataset['ConsumptionMonthlyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(30 * per_day_stride, min_periods=None).mean().shift(1).values
+
+        consumption_agg_columns += ['ConsumptionBiWeeklyMean', 'ConsumptionMonthlyMean']
+    if frequency == 'h' or frequency == '900s':
+        dataset['ConsumptionHalfDayMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(per_day_stride // 2, min_periods=None).mean().shift(1).values
+        dataset['ConsumptionQuarterDayMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(per_day_stride // 4, min_periods=None).mean().shift(1).values
+
+        consumption_agg_columns += ['ConsumptionHalfDayMean', 'ConsumptionQuarterDayMean']
+    if frequency == '900s':
+        dataset['ConsumptionHourlyMean'] = dataset.groupby('ForecastId')['Consumption'] \
+            .rolling(per_day_stride // 24, min_periods=None).mean().shift(1).values
+
+        consumption_agg_columns.append('ConsumptionHourlyMean')
+
+    for column in consumption_agg_columns:
         dataset[column] = dataset.groupby('ForecastId')[column]\
             .transform(lambda x: x.fillna(x[x.first_valid_index()])).values
 
@@ -254,20 +272,20 @@ def build_test_y_dep_features(dataset, frequency, train_dataset, **kwargs):
         raise Exception("There are voids of upto %s after merging train and test data for site %s" %
                         (np.max(merged_data['Timestamp'] - merged_data['Timestamp'].shift(1)), train_dataset['SiteId'].iloc[0]))
 
-    y_dep_features = [
-        'ConsumptionDailyMean',
-        'ConsumptionWeeklyMean',
-        'ConsumptionBiWeeklyMean',
-        'ConsumptionMonthlyMean',
-        'ConsumptionDailyMeanPerSurfaceArea',
-        'ConsumptionWeeklyMeanPerSurfaceArea',
-        'ConsumptionBiWeeklyMeanPerSurfaceArea',
-        'ConsumptionMonthlyMeanPerSurfaceArea',
-        'ConsumptionDailyMeanPerTemperatureDiff',
-        'ConsumptionWeeklyMeanPerTemperatureDiff',
-        'ConsumptionBiWeeklyMeanPerTemperatureDiff',
-        'ConsumptionMonthlyMeanPerTemperatureDiff',
-    ]
+    y_dep_features = []
+    if frequency == 'D' or frequency == 'h' or frequency == '900s':
+        y_dep_features += ['ConsumptionDailyMean', 'ConsumptionWeeklyMean']
+    if frequency == 'D' or frequency == 'h':
+        y_dep_features += ['ConsumptionBiWeeklyMean', 'ConsumptionMonthlyMean']
+    if frequency == 'h' or frequency == '900s':
+        y_dep_features += ['ConsumptionHalfDayMean', 'ConsumptionQuarterDayMean']
+    if frequency == '900s':
+        y_dep_features += ['ConsumptionHourlyMean']
+
+    y_dep_sa_features = list(map(lambda v: "%sPerSurfaceArea" % (v, ), y_dep_features))
+    y_dep_temp_features = list(map(lambda v: "%sPerTemperatureDiff" % (v,), y_dep_features))
+
+    y_dep_features += (y_dep_sa_features + y_dep_temp_features)
 
     merged_data[y_dep_features] = merged_data[y_dep_features].shift(output_window_size + 1)
 
