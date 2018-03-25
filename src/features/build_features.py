@@ -27,14 +27,13 @@ def build_holidays(dataset, holidays, metadata, **kwargs):
     return dataset
 
 
-def build_site_metadata(dataset, metadata, **kwargs):
+def build_site_metadata(dataset, metadata, frequency, **kwargs):
     dataset['SamplingRate'] = metadata['Sampling']
     dataset['BaseTemperature'] = metadata['BaseTemperature']
     dataset['SurfaceArea'] = metadata['Surface']
     dataset['TemperatureMeanDiff'] = dataset['TemperatureMean'] - dataset['BaseTemperature']
     dataset['TemperatureMinDiff'] = dataset['TemperatureMin'] - dataset['BaseTemperature']
     dataset['TemperatureMaxDiff'] = dataset['TemperatureMax'] - dataset['BaseTemperature']
-    dataset['TemperatureDailyMeanDiff'] = dataset['TemperatureDailyMean'] - dataset['BaseTemperature']
     dataset['TemperatureWeeklyMeanDiff'] = dataset['TemperatureWeeklyMean'] - dataset['BaseTemperature']
     dataset['TemperatureMonthlyMeanDiff'] = dataset['TemperatureMonthlyMean'] - dataset['BaseTemperature']
     dataset['TemperatureQuarterlyMeanDiff'] = dataset['TemperatureQuarterlyMean'] - dataset['BaseTemperature']
@@ -46,8 +45,6 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['PotentialMaxHeating'] = np.maximum(dataset['TemperatureMaxDiff'], 0)
     dataset['PotentialMinCooling'] = np.abs(np.minimum(dataset['TemperatureMinDiff'], 0))
     dataset['PotentialMaxCooling'] = np.abs(np.minimum(dataset['TemperatureMaxDiff'], 0))
-    dataset['PotentialDailyMeanHeating'] = np.maximum(dataset['TemperatureDailyMeanDiff'], 0)
-    dataset['PotentialDailyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureDailyMeanDiff'], 0))
     dataset['PotentialWeeklyMeanHeating'] = np.maximum(dataset['TemperatureWeeklyMeanDiff'], 0)
     dataset['PotentialWeeklyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureWeeklyMeanDiff'], 0))
     dataset['PotentialMonthlyMeanHeating'] = np.maximum(dataset['TemperatureMonthlyMeanDiff'], 0)
@@ -56,6 +53,33 @@ def build_site_metadata(dataset, metadata, **kwargs):
     dataset['PotentialQuarterlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureQuarterlyMeanDiff'], 0))
     dataset['PotentialYearlyMeanHeating'] = np.maximum(dataset['TemperatureYearlyMeanDiff'], 0)
     dataset['PotentialYearlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureYearlyMeanDiff'], 0))
+
+    if frequency == 'h' or frequency == '900s':
+        dataset['TemperatureDailyMeanDiff'] = dataset['TemperatureDailyMean'] - dataset['BaseTemperature']
+        dataset['PotentialDailyMeanHeating'] = np.maximum(dataset['TemperatureDailyMeanDiff'], 0)
+        dataset['PotentialDailyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureDailyMeanDiff'], 0))
+
+        dataset['TemperatureHalfDayMeanDiff'] = dataset['TemperatureHalfDayMean'] - dataset['BaseTemperature']
+        dataset['PotentialHalfDayMeanHeating'] = np.maximum(dataset['TemperatureHalfDayMeanDiff'], 0)
+        dataset['PotentialHalfDayMeanCooling'] = np.abs(np.minimum(dataset['TemperatureHalfDayMeanDiff'], 0))
+
+        dataset['TemperatureQuarterDayMeanDiff'] = dataset['TemperatureQuarterDayMean'] - dataset['BaseTemperature']
+        dataset['PotentialQuarterDayMeanHeating'] = np.maximum(dataset['TemperatureQuarterDayMeanDiff'], 0)
+        dataset['PotentialQuarterDayMeanCooling'] = np.abs(np.minimum(dataset['TemperatureQuarterDayMeanDiff'], 0))
+
+    if frequency == '900s':
+        dataset['TemperatureBiHourlyMeanDiff'] = dataset['TemperatureBiHourlyMean'] - dataset['BaseTemperature']
+        dataset['PotentialBiHourlyMeanHeating'] = np.maximum(dataset['TemperatureBiHourlyMeanDiff'], 0)
+        dataset['PotentialBiHourlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureBiHourlyMeanDiff'], 0))
+
+        dataset['TemperatureHourlyMeanDiff'] = dataset['TemperatureHourlyMean'] - dataset['BaseTemperature']
+        dataset['PotentialHourlyMeanHeating'] = np.maximum(dataset['TemperatureHourlyMeanDiff'], 0)
+        dataset['PotentialHourlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureHourlyMeanDiff'], 0))
+
+        dataset['TemperatureHalfHourlyMeanDiff'] = dataset['TemperatureHalfHourlyMean'] - dataset['BaseTemperature']
+        dataset['PotentialHalfHourlyMeanHeating'] = np.maximum(dataset['TemperatureHalfHourlyMeanDiff'], 0)
+        dataset['PotentialHalfHourlyMeanCooling'] = np.abs(np.minimum(dataset['TemperatureHalfHourlyMeanDiff'], 0))
+
     return dataset
 
 
@@ -139,11 +163,34 @@ def build_temperature(dataset, weather, frequency, **kwargs):
     else:
         raise Exception("Unknown frequency %s" % (frequency, ))
 
-    weather['TemperatureDailyMean'] = weather['TemperatureMean'].rolling(window=freq, min_periods=1, center=True).mean()
-    weather['TemperatureWeeklyMean'] = weather['TemperatureMean'].rolling(window=freq * 7, min_periods=1, center=True).mean()
-    weather['TemperatureMonthlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30, min_periods=1, center=True).mean()
-    weather['TemperatureQuarterlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 4, min_periods=1, center=True).mean()
-    weather['TemperatureYearlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 12, min_periods=1, center=True).mean()
+    weather['TemperatureWeeklyMean'] = weather['TemperatureMean'].rolling(window=freq * 7).mean()
+    weather['TemperatureMonthlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30).mean()
+    weather['TemperatureQuarterlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 4).mean()
+    weather['TemperatureYearlyMean'] = weather['TemperatureMean'].rolling(window=freq * 30 * 12).mean()
+
+    weather_agg_columns = [
+        'TemperatureWeeklyMean',
+        'TemperatureMonthlyMean',
+        'TemperatureQuarterlyMean',
+        'TemperatureYearlyMean'
+    ]
+
+    if frequency == 'h' or frequency == '900s':
+        weather['TemperatureDailyMean'] = weather['TemperatureMean'].rolling(window=freq).mean()
+        weather['TemperatureHalfDayMean'] = weather['TemperatureMean'].rolling(window=freq // 2).mean()
+        weather['TemperatureQuarterDayMean'] = weather['TemperatureMean'].rolling(window=freq // 4).mean()
+        weather_agg_columns += ['TemperatureDailyMean', 'TemperatureHalfDayMean', 'TemperatureQuarterDayMean']
+
+    if frequency == '900s':
+        weather['TemperatureBiHourlyMean'] = weather['TemperatureMean'].rolling(window=freq // 12).mean()
+        weather['TemperatureHourlyMean'] = weather['TemperatureMean'].rolling(window=freq // 24).mean()
+        weather['TemperatureHalfHourlyMean'] = weather['TemperatureMean'].rolling(window=freq // 48).mean()
+        weather_agg_columns += ['TemperatureBiHourlyMean', 'TemperatureHourlyMean', 'TemperatureHalfHourlyMean']
+
+    for column in weather_agg_columns:
+        first_valid_index = weather[column].first_valid_index()
+        if first_valid_index:
+            weather[column].fillna(weather[column][weather[column].first_valid_index()], inplace=True)
 
     weather = weather.interpolate(method='linear', limit=limit, limit_direction='both')
 

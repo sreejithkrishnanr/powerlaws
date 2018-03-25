@@ -45,13 +45,27 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
 
     weather_forecast_features = [
         'PotentialMeanHeating', 'PotentialMeanCooling', 'PotentialMinHeating', 'PotentialMaxHeating',
-        'PotentialMinCooling', 'PotentialMaxCooling', 'PotentialDailyMeanHeating', 'PotentialDailyMeanCooling',
+        'PotentialMinCooling', 'PotentialMaxCooling',
         'PotentialWeeklyMeanHeating', 'PotentialWeeklyMeanCooling', 'PotentialMonthlyMeanHeating',
         'PotentialMonthlyMeanCooling', 'PotentialQuarterlyMeanHeating', 'PotentialQuarterlyMeanCooling',
         'PotentialYearlyMeanHeating', 'PotentialYearlyMeanCooling',
         'DistanceMean', 'DistanceVariance', 'NumStations', 'HasTemperature', 'TemperatureVariance',
         # 'TemperatureMeanDiff', 'TemperatureMinDiff', 'TemperatureMaxDiff'
     ]
+
+    if frequency == 'h' or frequency == '900s':
+        weather_forecast_features += [
+            'PotentialDailyMeanHeating', 'PotentialDailyMeanCooling',
+            'PotentialHalfDayMeanHeating', 'PotentialHalfDayMeanCooling',
+            'PotentialQuarterDayMeanHeating', 'PotentialQuarterDayMeanCooling',
+        ]
+
+    if frequency == '900s':
+        weather_forecast_features += [
+            'PotentialBiHourlyMeanHeating', 'PotentialBiHourlyMeanCooling',
+            'PotentialHourlyMeanHeating', 'PotentialHourlyMeanCooling',
+            'PotentialHalfHourlyMeanHeating', 'PotentialHalfHourlyMeanCooling'
+        ]
 
     features = [
         'IsLeapYear', 'IsMonthEnd', 'IsMonthStart', 'IsQuarterEnd',
