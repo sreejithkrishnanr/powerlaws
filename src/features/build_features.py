@@ -10,18 +10,12 @@ from dotenv import find_dotenv, load_dotenv
 from tqdm import tqdm
 
 
-def build_holidays(dataset, holidays, metadata, **kwargs):
-    sp_holiday_mask = np.isin(dataset['Date'], holidays['Date'].values)
-    weekends, = np.where(
-        metadata['MondayIsDayOff':'SundayIsDayOff'])
-    weekend_mask = np.isin(dataset['DayOfWeek'], weekends)
-
-    dataset['IsSpecialHoliday'] = False
-    dataset['IsWeekend'] = False
-
-    dataset.loc[sp_holiday_mask, 'IsSpecialHoliday'] = True
-    dataset.loc[weekend_mask, 'IsWeekend'] = True
-    dataset['IsHoliday'] = dataset['IsSpecialHoliday'].values | dataset['IsWeekend']
+def build_holidays(dataset, holidays, **kwargs):
+    dataset = pd.merge_asof(
+        dataset,
+        holidays.drop(columns=['DayOfWeek', 'WeekOfYear', 'Year', 'Month', 'Quarter', 'SiteId']),
+        left_on='Date', right_on='Date', tolerance=pd.Timedelta('1h'), direction='nearest'
+    )
 
     return dataset
 
@@ -406,7 +400,7 @@ def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath,
     metadata = pd.read_csv(metadata_filepath)
 
     logger.info('Reading %s' % (holidays_filepath,))
-    holidays = pd.read_csv(holidays_filepath, parse_dates=[1])
+    holidays = pd.read_hdf(holidays_filepath, 'data', parse_dates=[0])
 
     if is_test_data:
         logger.info('Reading %s' % (train_data_filepath,))

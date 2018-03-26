@@ -67,15 +67,38 @@ def select_features(dataset, frequency, novalue=False, train_data=None, include_
             'PotentialHalfHourlyMeanHeating', 'PotentialHalfHourlyMeanCooling'
         ]
 
+    holiday_features = [
+        'SpecialHoliday', 'Weekend', 'Holiday',
+        'SpecialHolidayRemainingYearCount',
+        'SpecialHolidayRemainingQuarterCount',
+        'SpecialHolidayRemainingMonthCount',
+        'WeekendRemainingYearCount',
+        'WeekendRemainingQuarterCount',
+        'WeekendRemainingMonthCount',
+        'HolidayRemainingYearCount',
+        'HolidayRemainingQuarterCount',
+        'HolidayRemainingMonthCount', 'NumSpecialHolidayWithin2',
+        'NumWeekendWithin2', 'NumHolidayWithin2', 'NumSpecialHolidayWithin3',
+        'NumWeekendWithin3', 'NumHolidayWithin3', 'NumSpecialHolidayWithin4',
+        'NumWeekendWithin4', 'NumHolidayWithin4', 'NumSpecialHolidayWithin5',
+        'NumWeekendWithin5', 'NumHolidayWithin5', 'NumSpecialHolidayWithin6',
+        'NumWeekendWithin6', 'NumHolidayWithin6', 'NumSpecialHolidayWithin7',
+        'NumWeekendWithin7', 'NumHolidayWithin7', 'NumSpecialHolidayWithin10',
+        'NumWeekendWithin10', 'NumHolidayWithin10', 'NumSpecialHolidayWithin15',
+        'NumWeekendWithin15', 'NumHolidayWithin15', 'NumSpecialHolidayWithin30',
+        'NumWeekendWithin30', 'NumHolidayWithin30',
+        'NumSpecialHolidayWithin120', 'NumWeekendWithin120',
+        'NumHolidayWithin120',
+    ]
+
     features = [
         'IsLeapYear', 'IsMonthEnd', 'IsMonthStart', 'IsQuarterEnd',
         'IsQuarterStart', 'IsYearEnd', 'IsYearStart', 'DayOfMonth_cos', 'DayOfMonth_sin',
         'DayOfWeek_cos', 'DayOfWeek_sin', 'DayOfYear_cos',
         'DayOfYear_sin', 'Hour_cos', 'Hour_sin', 'Minute_cos', 'Minute_sin',
         'Month_cos', 'Month_sin', 'Quarter_cos', 'Quarter_sin',
-        'WeekOfYear_cos', 'WeekOfYear_sin', 'IsSpecialHoliday', 'IsWeekend',
-        'IsHoliday', y_val_column, 'ForecastId', 'SiteId', 'Timestamp'
-    ] + y_dep_features
+        'WeekOfYear_cos', 'WeekOfYear_sin', y_val_column, 'ForecastId', 'SiteId', 'Timestamp'
+    ] + y_dep_features + holiday_features
 
     if frequency == 'D':
         features.remove('Hour_cos')
