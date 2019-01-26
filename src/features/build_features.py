@@ -385,8 +385,7 @@ def build_features(builders, frequency, dataset, weather, metadata, holidays, tr
 @click.option('--resume_site', type=click.INT, default=None)
 def main(input_filepath, weather_filepath, metadata_filepath, holidays_filepath, output_filepath, frequency,
          is_test_data, train_data_filepath, sites, resume_site):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+    """ Derives features for specified frequency
     """
     logger = logging.getLogger(__name__)
 

@@ -9,13 +9,13 @@ import pandas as pd
 import numpy as np
 
 @click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('freq_dataset_filepath', type=click.Path(exists=True))
+@click.argument('input_filepath', type=click.Path(exists=True)) # train.csv / submission_format.csv
+@click.argument('freq_dataset_filepath', type=click.Path(exists=True)) # submission_frequency.csv
 @click.argument('output_dir', type=click.Path())
-@click.option('--output_file_prefix', type=click.STRING, default=None)
+@click.option('--output_file_prefix', type=click.STRING, default=None, 
+    help='prefix to output file name (prefix_frequency.hd5). default prefix is input file name')
 def main(input_filepath, freq_dataset_filepath, output_dir, output_file_prefix):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+    """ Split train / test by frequency of prediction
     """
     from src.utils.data import ensure_no_na
 

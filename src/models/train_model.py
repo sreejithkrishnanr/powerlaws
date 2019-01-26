@@ -149,12 +149,12 @@ def build_model_per_site(train_data, frequency, output_dir, evaluate_only=False,
 @click.option('--output_folder', type=click.Path())
 @click.option('--frequency', type=click.STRING, default='D')
 @click.option('--sites', type=click.STRING, default=None)
-@click.option('--models', type=click.STRING, default="gb,rnn")
+@click.option('--models', type=click.STRING, default="gb,")
 @click.option('--evaluate_only', type=click.BOOL, default=False)
 @click.option('--verbose', type=click.BOOL, default=False)
 def main(train_data_filepath, output_folder, frequency, sites, models, evaluate_only, verbose):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+    """ Train specified models for specified sites (default all sites)
+        Saves trained model and evaulation scores to specified output folder
     """
     logger = logging.getLogger(__name__)
 

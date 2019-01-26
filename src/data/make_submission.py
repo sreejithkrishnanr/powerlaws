@@ -12,15 +12,19 @@ import numpy as np
 
 
 @click.command()
+# Path to raw submission_format.csv
 @click.argument('submission_format_filepath', type=click.Path(exists=True))
+# Path to predicted hd5 file for 86400000000000ns frequency
 @click.argument('input_freq1D_filepath', type=click.Path(exists=True))
+# Path to predicted hd5 file for 3600000000000ns frequency
 @click.argument('input_freq1h_filepath', type=click.Path(exists=True))
+# Path to predicted hd5 file for 900000000000ns frequency
 @click.argument('input_freq900s_filepath', type=click.Path(exists=True))
+# Path to output file
 @click.argument('output_filepath', type=click.Path())
 def main(submission_format_filepath, input_freq1d_filepath, input_freq1h_filepath,
          input_freq900s_filepath, output_filepath):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+    """ Generate submission file
     """
     logger = logging.getLogger(__name__)
 

@@ -12,12 +12,11 @@ from tqdm import tqdm
 
 
 @click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('metadata_filepath', type=click.Path(exists=True))
+@click.argument('input_filepath', type=click.Path(exists=True)) # holidays.csv
+@click.argument('metadata_filepath', type=click.Path(exists=True)) # metadata.csv
 @click.argument('output_filepath', type=click.Path())
 def main(input_filepath, output_filepath, metadata_filepath):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+    """ Process holidays.csv
     """
     logger = logging.getLogger(__name__)
 

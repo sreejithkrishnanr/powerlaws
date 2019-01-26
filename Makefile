@@ -22,13 +22,21 @@ endif
 
 ## Install Python Dependencies
 requirements: test_environment
-	pip install -U pip setuptools wheel
 	pip install -r requirements.txt
 
 ## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+data: 
+	mkdir -p 'data/interim'
+	mkdir -p 'data/processed'
+	
+	make data_holidays
+	make data_weather
+	make data_split_train_data_by_freq
+	make data_split_test_data_by_freq
 
+## Make holiday dataset
+data_holidays:
+	$(PYTHON_INTERPRETER) src/data/make_holidays.py data/raw/holidays.csv data/raw/metadata.csv data/processed/holidays.hd5
 
 ## Make weather dataset
 data_weather:
@@ -91,7 +99,10 @@ model_build_per_15m:
 	$(call make_build_args,data/processed/train_900000000000.hd5,models/freq900s,900s,$(evaluate_only),$(sites),$(models),$(verbose))
 
 ## Build all models
-model_build: model_build_per_day model_build_per_hour model_build_per_15m
+model_build: 
+	make model_build_per_day models=gb,gb_log,gb_stat,gb_recursive
+	make model_build_per_hour models=gb,gb_log,gb_stat,gb_recursive
+	make model_build_per_15m models=gb,gb_log,gb_stat
 
 
 ## Predict for per day forecast
@@ -115,6 +126,12 @@ model_predict: model_predict_per_day model_predict_per_hour model_predict_per_15
 
 ## Build and predict
 model: model_build model_predict
+
+all:
+	make requirements
+	make data
+	make features
+	make model
 
 ## Delete all compiled Python files
 clean:
